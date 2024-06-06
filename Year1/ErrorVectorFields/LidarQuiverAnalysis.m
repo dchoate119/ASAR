@@ -1,16 +1,16 @@
 % Daniel Choate 
-% Goal: Use quiver plot analyses for different data sets 
+% Goal: Use vector field plot analyses for different data sets 
 % Main code for paper 
 
 % script for simulating lidar scans of input base stl scene (generated using
-%autodesk inventor)
+%autodesk inventor or solidworks)
 clear all 
 close all
 
 %import stl
 % Locate file to display scene 
 % Test evironment which Dan made
-FileName = 'C:\Users\dchoa\OneDrive\Documents\TUFTS\Research\TestEnvironment.stl';  
+FileName = 'TestEnvironment.stl';  
 
 % Open and read the stl file of point
 OpenFile = stlread(FileName);
@@ -67,6 +67,11 @@ target.Dimensions.Length = 25; %32
 target.Dimensions.Width = 25; %32
 target.Dimensions.Height = 11; %16; %12 
 
+% show(target.Mesh)
+
+% figure(1)
+
+
 % Obtain the mesh of the target viewed from the ego platform after advancing the scenario one step forward.
 % Assuming scenario has an automatic 0.1 second value
 advance(scenario);
@@ -121,22 +126,197 @@ tform_ndt = pcregisterndt(movingCloud, staticCloud, gridstep, "InitialTransform"
 % WITHOUT SHADOW MITIGATION
 tform_ndt_tran = tform_ndt.Translation;
 NDT_Results = [tform_ndt.Translation(1) tform_ndt.Translation(2) -acos(tform_ndt.R(1,1))];
-NDT_Error = X_Y_Yaw + NDT_Results
+NDT_Error = X_Y_Yaw + NDT_Results;
 
 % All shadowing and voxel distribution done after alignment
 % **************** ALIGNING SCANS USING NDT ***************
 ptCloud2b = ptCloud2;
 % ptCloud2 = (ptCloud2 + tform_ndt.Translation) * ((tform_ndt.R)^-1);
 
+% ******************GRAPHING VOXEL BOUNDARIES************************
+colorGray = [.7 .7 .7];
+% VOXEL A
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-120; -120]*pi/180;
+El = [-10; -10]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-120; -120]*pi/180;
+El = [-14; -14]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-110; -110]*pi/180;
+El = [-14; -14]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-110; -110]*pi/180;
+El = [-10; -10]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% VOXEL B
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [40; 40]*pi/180;
+El = [-6; -6]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(1)
+% hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [40; 40]*pi/180;
+El = [-2; -2]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(1)
+% hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [30; 30]*pi/180;
+El = [-2; -2]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(1)
+% hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [30; 30]*pi/180;
+El = [-6; -6]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(1)
+% hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% VOXEL C
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-150; -150]*pi/180;
+El = [-10; -10]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-150; -150]*pi/180;
+El = [-14; -14]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-160; -160]*pi/180;
+El = [-14; -14]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
+
+% Define edge endpoints in polar coordinates
+rho = [.5; 14];
+Az = [-160; -160]*pi/180;
+El = [-10; -10]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+figure(1)
+hold on 
+% plot3(X,Y,Z, 'black', 'LineStyle','--')
 % *************** ALIGNING SCANS USING TRUTH **************
 ptCloud2 = (ptCloud2 - relpos) * ((rotationM)^-1);
 
 % Plot ptCloud1 and translated ptCloud2 using plot3 function
-plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.')
-hold on
+% NOTE: SUBTRACTING 3 from the z direction to match mesh plot 
+figure(1)
+hold on 
+plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.', 'Color', colorGray)
+% hold on
 % plot3(ptCloud2b(:,1),ptCloud2b(:,2),ptCloud2b(:,3),'.')
-% hold on 
-plot3(ptCloud2(:,1),ptCloud2(:,2),ptCloud2(:,3),'.')
+hold on 
+plot3(ptCloud2(:,1),ptCloud2(:,2),ptCloud2(:,3),'.', 'Color', colorGray)
 % legend("Original", "Second Scan","Matched Scene")
 
 % ******************** POLAR COORDS ******************************
@@ -172,10 +352,10 @@ remove_pts_lower = domain_error_below(ptCloud1_pol_B, height, min_angle);
 % plot3(ptCloud1(remove_pts_lower,1),ptCloud1(remove_pts_lower,2),ptCloud1(remove_pts_lower,3),'.')
 
 remove_pts_upper = domain_error_above(ptCloud1_pol_B, height, max_angle);
-% Plot cloud 1 with upper points removed 
-% figure(1)
-% hold on
-% plot3(ptCloud1(remove_pts_upper,1),ptCloud1(remove_pts_upper,2),ptCloud1(remove_pts_upper,3),'.')
+
+total_pts_domrem_1 = cat(2, remove_pts_lower, remove_pts_upper);
+
+
 
 ptCloud1_domrem = ptCloud1;
 ptCloud1_domrem(remove_pts_lower,:) = NaN;
@@ -194,17 +374,38 @@ remove_pts_upper_B = domain_error_above(ptCloud2_pol, height, max_angle);
 % hold on
 % plot3(ptCloud2(remove_pts_upper_B,1),ptCloud2(remove_pts_upper_B,2),ptCloud2(remove_pts_upper_B,3),'.')
 
+total_pts_domrem_2 = cat(2, remove_pts_lower_B, remove_pts_upper_B);
+
+% Plot total points to be removed from cloud 1
+figure(1)
+hold on 
+plot3(ptCloud1(total_pts_domrem_1,1),ptCloud1(total_pts_domrem_1,2),ptCloud1(total_pts_domrem_1,3),'.', 'Color', '#0072BD')
+hold on 
+plot3(ptCloud2(total_pts_domrem_2,1),ptCloud2(total_pts_domrem_2,2),ptCloud2(total_pts_domrem_2,3),'.', 'Color', '#D95319')
+
+
+
 ptCloud2_domrem = ptCloud2;
 ptCloud2_domrem(remove_pts_lower_B,:) = NaN;
 ptCloud2_domrem(remove_pts_upper_B,:) = NaN;
-
-% figure(2)
-% plot3(ptCloud1_domrem(:,1), ptCloud1_domrem(:,2), ptCloud1_domrem(:,3), '.')
+% 
+% figure(1)
+% hold on
+% plot3(ptCloud1_domrem(:,1), ptCloud1_domrem(:,2), ptCloud1_domrem(:,3), '.', 'Color', '#0072BD')
 % hold on 
-% plot3(ptCloud2_domrem(:,1), ptCloud2_domrem(:,2), ptCloud2_domrem(:,3), '.')
+% plot3(ptCloud2_domrem(:,1), ptCloud2_domrem(:,2), ptCloud2_domrem(:,3), '.', 'Color', '#D95319')
 
-total_pts_domrem_1 = cat(2, remove_pts_lower, remove_pts_upper);
+
 total_pts_domrem_2 = cat(2, remove_pts_lower_B, remove_pts_upper_B);
+
+% Plot cloud 1 with points to be removed 
+% figure(1)
+% hold on
+% plot3(ptCloud1(total_pts_domrem_1,1),ptCloud1(total_pts_domrem_1,2),ptCloud1(total_pts_domrem_1,3),'.')
+% % Plot cloud 2 with upper points removed 
+% figure(1)
+% hold on
+% plot3(ptCloud2(total_pts_domrem_2,1),ptCloud2(total_pts_domrem_2,2),ptCloud2(total_pts_domrem_2,3),'.')
 
 ptCloud1_pol_domrem = conv_to_polar(ptCloud1_domrem, initial_o);
 ptCloud2_pol_domrem = conv_to_polar(ptCloud2_domrem, initial_o);
@@ -316,6 +517,16 @@ ptCloud1_A1_A2 = ptCloud1;
 ptCloud2_A1_A2 = ptCloud2;
 ptCloud1_A1_A2(totalpts_Cloud1,:) = NaN;
 ptCloud2_A1_A2(totalpts_Cloud2,:) = NaN;
+
+figure(2)
+hold on
+plot3(ptCloud1_domrem(:,1), ptCloud1_domrem(:,2), ptCloud1_domrem(:,3), '.', 'Color', colorGray)
+hold on 
+plot3(ptCloud2_domrem(:,1), ptCloud2_domrem(:,2), ptCloud2_domrem(:,3), '.', 'Color', colorGray)
+hold on 
+plot3(ptCloud1(totalpts_Cloud1,1),ptCloud1(totalpts_Cloud1,2),ptCloud1(totalpts_Cloud1,3),'.', 'Color', '#0072BD')
+hold on 
+plot3(ptCloud2(totalpts_Cloud2,1),ptCloud2(totalpts_Cloud2,2),ptCloud2(totalpts_Cloud2,3),'.', 'Color', '#D95319')
 
 
 % Plot new point clouds after shadow mitigation analysis 1

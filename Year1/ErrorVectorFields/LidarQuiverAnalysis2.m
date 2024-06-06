@@ -10,7 +10,7 @@ close all
 %import stl
 % Locate file to display scene 
 % Test evironment which Dan made
-FileName = 'C:\Users\dchoa\OneDrive\Documents\TUFTS\Research\TestEnvironment.stl';  
+FileName = 'C:\Users\dchoa\OneDrive\Documents\TUFTS\Research\Solidworks\TestEnvironment.stl';  
 
 
 % % ********************** UPLOADING VOLPE DATA ***************************
@@ -27,7 +27,7 @@ FileName = 'C:\Users\dchoa\OneDrive\Documents\TUFTS\Research\TestEnvironment.stl
 % ********************** IMPORT VOLPE DATA *******************************
 
 % Syntax to read SignagePCs.mat
-cd 'C:\Users\dchoa\Box\GPS-INS Project Materials\Data-Volpe\Lidar_RelativePosition'
+% cd 'C:\Users\dchoa\Box\GPS-INS Project Materials\Data-Volpe\Lidar_RelativePosition'
 load signagePCs
 size(pc);
 
@@ -43,128 +43,23 @@ im8=pc{8};
 im9=pc{9};
 im10=pc{10};
 
-
-% Convert point cloud to 2D Range image
-range1=sqrt(im1(:,:,1).^2+im1(:,:,2).^2+im1(:,:,3).^2);  
-
-x_1 = im1(:,:,1);
-y_1 = im1(:,:,2);
-z_1 = im1(:,:,3);
-
-x_2 = im2(:,:,1);
-y_2 = im2(:,:,2);
-z_2 = im2(:,:,3);
-
-x_3 = im3(:,:,1);
-y_3 = im3(:,:,2);
-z_3 = im3(:,:,3);
-
-x_4 = im4(:,:,1);
-y_4 = im4(:,:,2);
-z_4 = im4(:,:,3);
-
-x_5 = im5(:,:,1);
-y_5 = im5(:,:,2);
-z_5 = im5(:,:,3);
-
-x_6 = im6(:,:,1);
-y_6 = im6(:,:,2);
-z_6 = im6(:,:,3);
-
-x_7 = im7(:,:,1);
-y_7 = im7(:,:,2);
-z_7 = im7(:,:,3);
-
-x_8 = im8(:,:,1);
-y_8 = im8(:,:,2);
-z_8 = im8(:,:,3);
-
-x_9 = im9(:,:,1);
-y_9 = im9(:,:,2);
-z_9 = im9(:,:,3);
-
-x_10 = im10(:,:,1);
-y_10 = im10(:,:,2);
-z_10 = im10(:,:,3);
-
-% Format each point cloud to match what was used inLidarQuiverAnalysis doc
-
-x_1_s = format_ptCloud(x_1);
-y_1_s = format_ptCloud(y_1);
-z_1_s = format_ptCloud(z_1);
-
-x_2_s = format_ptCloud(x_2);
-y_2_s = format_ptCloud(y_2);
-z_2_s = format_ptCloud(z_2);
-
-x_3_s = format_ptCloud(x_3); 
-y_3_s = format_ptCloud(y_3);
-z_3_s = format_ptCloud(z_3);
-
-x_4_s = format_ptCloud(x_4);
-y_4_s = format_ptCloud(y_4);
-z_4_s = format_ptCloud(z_4);
-
-x_5_s = format_ptCloud(x_5);
-y_5_s = format_ptCloud(y_5);
-z_5_s = format_ptCloud(z_5);
-
-x_6_s = format_ptCloud(x_6);
-y_6_s = format_ptCloud(y_6);
-z_6_s = format_ptCloud(z_6);
-
-x_7_s = format_ptCloud(x_7);
-y_7_s = format_ptCloud(y_7);
-z_7_s = format_ptCloud(z_7);
-
-x_8_s = format_ptCloud(x_8);
-y_8_s = format_ptCloud(y_8);
-z_8_s = format_ptCloud(z_8);
-
-x_9_s = format_ptCloud(x_9);
-y_9_s = format_ptCloud(y_9);
-z_9_s = format_ptCloud(z_9);
-
-x_10_s = format_ptCloud(x_10);
-y_10_s = format_ptCloud(y_10);
-z_10_s = format_ptCloud(z_10);
+ptCloud1 = create_cloud(im1);
+ptCloud2 = create_cloud(im2);
+ptCloud3 = create_cloud(im3);
+ptCloud4 = create_cloud(im4);
+ptCloud5 = create_cloud(im5);
+ptCloud6 = create_cloud(im6);
+ptCloud7 = create_cloud(im7);
+ptCloud8 = create_cloud(im8);
+ptCloud9 = create_cloud(im9);
+ptCloud10 = create_cloud(im10);
 
 
-ptCloud1 = [x_1_s y_1_s z_1_s];
-ptCloud2 = [x_2_s y_2_s z_2_s];
-ptCloud3 = [x_3_s y_3_s z_3_s];
-ptCloud4 = [x_4_s y_4_s z_4_s];
-ptCloud5 = [x_5_s y_5_s z_5_s];
-ptCloud6 = [x_6_s y_6_s z_6_s];
-ptCloud7 = [x_7_s y_7_s z_7_s];
-ptCloud8 = [x_8_s y_8_s z_8_s];
-ptCloud9 = [x_9_s y_9_s z_9_s];
-ptCloud10 = [x_10_s y_10_s z_10_s];
-
-
-% Plot pt clouds 1 and 10 to visualize largest change
-figure()
-plot3(ptCloud1(:,1), ptCloud1(:,2), ptCloud1(:,3), '.')
-hold on 
-plot3(ptCloud10(:,1), ptCloud10(:,2), ptCloud10(:,3), '.')
-
+% % Plot pt clouds 1 and 10 to visualize largest change
+% figure()
+% plot3(ptCloud1(:,1), ptCloud1(:,2), ptCloud1(:,3), '.')
 % hold on 
-% plot3(x_5, y_5, z_5, '.g');
-
-
-% ****** Deleted all info simulating a sensor for personal simulation
-% ****** Not needed 
-
-% Potentially remove ground plane points once identified
-% Remove ground plane points 
-% groundIndx1 = find(ptCloud1(:,3) < 0);
-% % aboveIndx1 = find(ptCloud1(:,3) > 2);
-% ptCloud1(groundIndx1, :) = [];
-% % ptCloud1(aboveIndx1, :) = [];
-% groundIndx2 = find(ptCloud2(:,3) < 0);
-% % aboveIndx2 = find(ptCloud2(:,3) > 2);
-% ptCloud2(groundIndx2, :) = [];
-% % ptCloud2(aboveIndx2, :) = [];
+% plot3(ptCloud10(:,1), ptCloud10(:,2), ptCloud10(:,3), '.')
 
 movingCloud = pointCloud(ptCloud10); 
 staticCloud = pointCloud(ptCloud1); 
@@ -179,13 +74,12 @@ pos_guess = [0 -3 0];
 % Guess must be in the form of a rotation matrix and a 1x3 translation 
 tformguess = rigid3d((rotationM)^-1, pos_guess);
 % rigidtform3d = 0
-tform_ndt = pcregisterndt(movingCloud, staticCloud, gridstep, "InitialTransform", tformguess,"MaxIterations", 10000); 
+tform_ndt = pcregisterndt(movingCloud, staticCloud, gridstep, "InitialTransform", tformguess) %,"MaxIterations", 10000); 
 
 % Calculate error of the first NDT scan match 
 % WITHOUT SHADOW MITIGATION
 tform_ndt_tran = tform_ndt.Translation;
 % NDT_Results = [tform_ndt.Translation(1) tform_ndt.Translation(2) -acos(tform_ndt.R(1,1))];
-% NDT_Error = X_Y_Yaw + NDT_Results
 
 
 % All shadowing and voxel distribution done after alignment
@@ -197,16 +91,96 @@ ptCloud10 = (ptCloud10 - tform_ndt.Translation);% * ((tform_ndt.R)^-1);
 % ADD TRUTH ONCE CALCULATED
 % ptCloud2 = (ptCloud2 - relpos) * ((rotationM)^-1);
 
-figure(1)
-hold on 
-plot3(ptCloud10(:,1),ptCloud10(:,2),ptCloud10(:,3),'.')
+% figure(1)
+% hold on 
+% plot3(ptCloud10(:,1),ptCloud10(:,2),ptCloud10(:,3),'.')
 
 % Plot ptCloud1 and translated ptCloud10 using plot3 function
-figure()
-plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.')
+grayColor = [.7 .7 .7];
+figure(1)
+plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.')%, 'Color', grayColor)
 hold on
-plot3(ptCloud10(:,1),ptCloud10(:,2),ptCloud10(:,3),'.')
+plot3(ptCloud10(:,1),ptCloud10(:,2),ptCloud10(:,3),'.')%, 'Color', grayColor)
 % legend("Original", "Second Scan","Matched Scene")
+
+% ******************GRAPHING VOXEL BOUNDARIES************************
+v_az = 18;
+v_elev = 3;
+for i = 1:v_az
+    for j = 1:v_elev
+        azinum = i*(360/v_az);
+        % If only plotting one voxel boundary 
+        % azinum = 150;
+        elevnum = -22-(40/v_elev) + (40/v_elev)*j;
+        % If only plotting on voxel boundary 
+        % elevnum = 12;
+        rho = [1; 100];
+        Az = [azinum; azinum]*pi/180;
+        El = [elevnum; elevnum]*pi/180;
+        X = rho.*cos(Az).*cos(El);
+        Y = rho.*sin(Az).*cos(El);
+        Z = rho.*sin(El);
+        figure(1)
+        hold on 
+        plot3(X,Y,Z, 'black', 'LineStyle','--')
+    end
+end
+
+% Define edge endpoints in polar coordinates
+rho = [1; 100];
+Az = [150; 150]*pi/180;
+El = [-4; -4]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(3)
+% hold on 
+% plot3(X,Y,Z, 'r')
+
+% Define edge endpoints in polar coordinates
+rho = [1; 100];
+Az = [150; 150]*pi/180;
+El = [4; 4]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(3)
+% hold on 
+% plot3(X,Y,Z, 'r')
+
+% Define edge endpoints in polar coordinates
+rho = [1; 100];
+Az = [160; 160]*pi/180;
+El = [4; 4]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(3)
+% hold on 
+% plot3(X,Y,Z, 'r')
+
+% Define edge endpoints in polar coordinates
+rho = [1; 100];
+Az = [160; 160]*pi/180;
+El = [-4; -4]*pi/180;
+
+% Convert endpoints to Cartesian coordinates & plot
+X = rho.*cos(Az).*cos(El);
+Y = rho.*sin(Az).*cos(El);
+Z = rho.*sin(El);
+
+% figure(3)
+% hold on 
+% plot3(X,Y,Z, 'r')
 
 
 % ******************** POLAR COORDS ******************************
@@ -285,13 +259,13 @@ bot_elev = -20;
 elev_dif = top_elev - bot_elev;
 
 % Degrees of arclength of voxel  
-arc_d = 36; %3.6 %36 %10 
+arc_d = 10; %3.6 %36 %10 
 % Amount of voxels divided around circumference
 v_az = ceil(360/arc_d);
 % Degrees per band elevation
 dpb = 2;
 % Determine amount of bands per azimuth voxel
-band_des = 2;
+band_des = 4;
 band_amt = band_des*dpb;
 % Determine amount of voxels through elevation
 % NOTE: for VLP-16, 1 band every 2 degrees 
@@ -308,13 +282,43 @@ Voxels1_B = sph_vox_dist(ptCloud1_pol_B, arc_d, band_amt, elev_dif, zero_el);
 Voxels10_B = sph_vox_dist(ptCloud10_pol_B, arc_d, band_amt, elev_dif, zero_el);
 
 
+% ************************ VEHICLE REMOVAL ***************************
+% First: seeing impact of removing the vehicle from each pt cloud 
+% Determine the range necessary to remove the vehicle from the point cloud
+range = 4.1; 
+points_rem_1 = rem_vehicle(ptCloud1, ptCloud1_pol, range);
+points_rem_10 = rem_vehicle(ptCloud10, ptCloud10_pol, range);
 
+% % Plot points on point cloud to view results
+figure(1)
+hold on 
+plot3(ptCloud1(points_rem_1,1), ptCloud1(points_rem_1,2), ptCloud1(points_rem_1,3), '.', 'Color', '#0072BD')
+hold on 
+plot3(ptCloud10(points_rem_10,1), ptCloud10(points_rem_10,2), ptCloud10(points_rem_10,3), '.', 'Color', '#D95319')
 
+% Remove designated points from each point cloud
 
+ptCloud1_vrem = ptCloud1;
+ptCloud1_vrem(points_rem_1, :) = NaN;
+ptCloud10_vrem = ptCloud10;
+ptCloud10_vrem(points_rem_10,:) = NaN;
 
-% NOTE: COMMENTING OUT DOMAIN BOUNDARY ERROR AND SHADOW MITIGATION UNTIL
-% AFTER INITIAL VECTOR FIELD ANALYSIS
+figure(2)
+plot3(ptCloud1_vrem(:,1), ptCloud1_vrem(:,2), ptCloud1_vrem(:,3), '.', 'Color', grayColor) %'[0, 0.447, 0.7410]')
+hold on 
+plot3(ptCloud10_vrem(:,1), ptCloud10_vrem(:,2), ptCloud10_vrem(:,3), '.', 'Color', grayColor) % '[.85, .325, .098]')
 
+% Convert new clouds with vehicle removed to polar clouds
+ptCloud1_pol_vrem = conv_to_polar(ptCloud1_vrem, initial_o);
+ptCloud10_pol_vrem = conv_to_polar(ptCloud10_vrem, initial_o);
+
+% Convert new clouds with vehicle removed to polar clouds at FINAL POS
+ptCloud1_pol_vrem_B = conv_to_polar(ptCloud1_vrem, final_o);
+ptCloud10_pol_vrem_B = conv_to_polar(ptCloud10_vrem, final_o);
+
+% Repeat voxel distribution for point clouds with vehicle removed
+Voxels1_vrem = sph_vox_dist(ptCloud1_pol_vrem, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_vrem = sph_vox_dist(ptCloud10_pol_vrem, arc_d, band_amt, elev_dif, zero_el);
 
 
 
@@ -322,165 +326,282 @@ Voxels10_B = sph_vox_dist(ptCloud10_pol_B, arc_d, band_amt, elev_dif, zero_el);
 % % Remove the points which contribute to domain boundary errors
 % % Includes ground plane points inside the blind spot of lidar from each
 % % view, as well as vertical limits at tops of scene 
-% 
-% height = target.Position(1,3) - 1.5;
-% height_upper = target.Position(1,3) + 2.1318;
-% min_angle = sensor.ElevationLimits(1,1);
-% max_angle = sensor.ElevationLimits(1,2);
-% 
-% % Analysis 1: remove points from ptCloud 1 
-% remove_pts_lower = domain_error_below(ptCloud1_pol_B, height, min_angle);
-% % Plot cloud 1 with lower points removed 
-% figure(1)
-% plot3(ptCloud1(remove_pts_lower,1),ptCloud1(remove_pts_lower,2),ptCloud1(remove_pts_lower,3),'.')
-% 
-% remove_pts_upper = domain_error_above(ptCloud1_pol_B, height, max_angle);
-% % Plot cloud 1 with upper points removed 
-% figure(1)
-% hold on
-% plot3(ptCloud1(remove_pts_upper,1),ptCloud1(remove_pts_upper,2),ptCloud1(remove_pts_upper,3),'.')
-% 
-% ptCloud1_domrem = ptCloud1;
-% ptCloud1_domrem(remove_pts_lower,:) = NaN;
-% ptCloud1_domrem(remove_pts_upper,:) = NaN;
-% 
-% % Analysis 2: remove points from ptCloud 2
-% % BELOW
-% remove_pts_lower_B = domain_error_below(ptCloud2_pol, height, min_angle);
-% % Plot cloud 2 with lower points removed
-% figure(1)
-% plot3(ptCloud2(remove_pts_lower_B,1),ptCloud2(remove_pts_lower_B,2),ptCloud2(remove_pts_lower_B,3),'.')
-% % ABOVE
-% remove_pts_upper_B = domain_error_above(ptCloud2_pol, height, max_angle);
-% % Plot cloud 2 with upper points removed
-% figure(1)
-% hold on
-% plot3(ptCloud2(remove_pts_upper_B,1),ptCloud2(remove_pts_upper_B,2),ptCloud2(remove_pts_upper_B,3),'.')
-% 
-% ptCloud2_domrem = ptCloud2;
-% ptCloud2_domrem(remove_pts_lower_B,:) = NaN;
-% ptCloud2_domrem(remove_pts_upper_B,:) = NaN;
-% 
-% figure(2)
-% plot3(ptCloud1_domrem(:,1), ptCloud1_domrem(:,2), ptCloud1_domrem(:,3), '.')
-% hold on 
-% plot3(ptCloud2_domrem(:,1), ptCloud2_domrem(:,2), ptCloud2_domrem(:,3), '.')
-% 
-% total_pts_domrem_1 = cat(2, remove_pts_lower, remove_pts_upper);
-% total_pts_domrem_2 = cat(2, remove_pts_lower_B, remove_pts_upper_B);
-% 
-% ptCloud1_pol_domrem = conv_to_polar(ptCloud1_domrem, initial_o);
-% ptCloud2_pol_domrem = conv_to_polar(ptCloud2_domrem, initial_o);
-% 
-% 
-% 
-% % *************** SHADOW MITIGATION ******************************
-% 
-% % Implement pre-processing step for shadowing errors
-% % Initialize a jump paramenter and minimum number of points threshold
-% % SHADOW MITIGATION CAN BE APPLIED WITH OR WITHOUT DOMAIN BOUNDARY ERROR REMOVAL 
-% jump = 1;
-% % jump = 0.75
-% point_n = 60;
-% % ANALYSIS 1 - get points to be removed by method of analysis 1
-% % NOTE: USE THE DOMAIN BOUNDARY ERROR CLOUDS 
-% points_Cloud1_A1 = shadow_mitig(ptCloud1_pol, Voxels1, jump, point_n, arc_d, band_amt, elev_dif, zero_el); % ptCloud1_pol_domrem
-% points_Cloud2_A1 = shadow_mitig(ptCloud2_pol, Voxels2, jump, point_n, arc_d, band_amt, elev_dif, zero_el); % ptCloud2_pol_domrem
-% 
-% 
+% NOTE: Using clouds with vehicle already removed
+
+% Completing only for spherical voxels
+
+height = 0;
+min_angle = -15;
+max_angle = 15;
+
+% Analysis 1: remove points from ptCloud 1
+remove_pts_lower_1 = domain_error_below(ptCloud1_pol_vrem_B, height, min_angle);
+% Plot points to be removed from Cloud 1
+figure(2)
+hold on 
+plot3(ptCloud1(remove_pts_lower_1,1),ptCloud1(remove_pts_lower_1,2),ptCloud1(remove_pts_lower_1,3),'.', 'Color', '#0072BD')
+
+remove_pts_upper_1 = domain_error_above(ptCloud1_pol_vrem_B, height, max_angle);
+% Plot points to be removed from Cloud 1
+figure(2)
+hold on 
+plot3(ptCloud1(remove_pts_upper_1,1),ptCloud1(remove_pts_upper_1,2),ptCloud1(remove_pts_upper_1,3),'.', 'Color', '#0072BD')
+
+% Analysis 10: remove points from ptCloud 10
+remove_pts_lower_10 = domain_error_below(ptCloud10_pol_vrem, height, min_angle);
+% Plot points to be removed from Cloud 10
+figure(2)
+hold on 
+plot3(ptCloud10(remove_pts_lower_10,1),ptCloud10(remove_pts_lower_10,2),ptCloud10(remove_pts_lower_10,3),'.', 'Color', '#D95319')
+
+remove_pts_upper_10 = domain_error_above(ptCloud10_pol_vrem, height, max_angle);
+% Plot points to be removed from Cloud 10
+figure(2) 
+hold on 
+plot3(ptCloud10(remove_pts_upper_10,1),ptCloud10(remove_pts_upper_10,2),ptCloud10(remove_pts_upper_10,3),'.', 'Color', '#D95319')
+
+% Remove points from clouds 
+ptCloud1_domrem = ptCloud1_vrem;
+ptCloud1_domrem(remove_pts_lower_1,:) = NaN;
+ptCloud1_domrem(remove_pts_upper_1,:) = NaN;
+
+ptCloud10_domrem = ptCloud10_vrem;
+ptCloud10_domrem(remove_pts_lower_10,:) = NaN;
+ptCloud10_domrem(remove_pts_upper_10,:) = NaN;
+
+% PLOT NEW CLOUDS
+figure(3)
+plot3(ptCloud1_domrem(:,1), ptCloud1_domrem(:,2), ptCloud1_domrem(:,3), '.')%, 'Color', grayColor)
+hold on 
+plot3(ptCloud10_domrem(:,1), ptCloud10_domrem(:,2), ptCloud10_domrem(:,3), '.')%, 'Color', grayColor)
+
+total_pts_domrem_1 = cat(2, remove_pts_lower_1, remove_pts_upper_1);
+total_pts_domrem_10 = cat(2, remove_pts_lower_10, remove_pts_upper_10);
+
+ptCloud1_pol_domrem = conv_to_polar(ptCloud1_domrem, initial_o);
+ptCloud10_pol_domrem = conv_to_polar(ptCloud10_domrem, initial_o);
+
+
+% *************** SHADOW MITIGATION ******************************
+
+% Implement pre-processing step for shadowing errors
+% Initialize a jump paramenter and minimum number of points threshold
+% SHADOW MITIGATION CAN BE APPLIED WITH OR WITHOUT DOMAIN BOUNDARY ERROR REMOVAL 
+jump = 1;
+% jump = 0.75
+point_n = 30;
+% ANALYSIS 1 - get points to be removed by method of analysis 1
+% NOTE: USE THE VEHICLE REMOVED CLOUDS 
+points_Cloud1_A1 = shadow_mitig(ptCloud1_pol_domrem, Voxels1_vrem, jump, point_n, arc_d, band_amt, elev_dif, zero_el); % ptCloud1_pol_vrem
+points_Cloud10_A1 = shadow_mitig(ptCloud10_pol_domrem, Voxels10_vrem, jump, point_n, arc_d, band_amt, elev_dif, zero_el); % ptCloud2_pol_vrem
+
+points_Cloud1_FIRST = shadow_mitig_first(ptCloud1_pol_vrem, Voxels1_vrem, jump, point_n, arc_d, band_amt, elev_dif, zero_el);
+points_Cloud10_FIRST = shadow_mitig_first(ptCloud10_pol_vrem, Voxels10_vrem, jump, point_n, arc_d, band_amt, elev_dif, zero_el);
+
+
+% % COMMENTING OUT ANALYSIS 2 UNTIL ANALYSIS ONE SOLVED AND COMPLETED
 % % ANALYSIS 2 - get points to be removed by method of analysis 2
 % % First, need new polar coordinates with center at ptcloud before alignment
 % % Also, need new voxel distribution 
 % 
 % points_Cloud1_A2 = shadow_mitig(ptCloud1_pol_B, Voxels1_B, jump, point_n, arc_d, band_amt, elev_dif, zero_el);
-% points_Cloud2_A2 = shadow_mitig(ptCloud2_pol_B, Voxels2_B, jump, point_n, arc_d, band_amt, elev_dif, zero_el);
+% points_Cloud10_A2 = shadow_mitig(ptCloud10_pol_B, Voxels10_B, jump, point_n, arc_d, band_amt, elev_dif, zero_el);
 % 
 % % Create an array with the total points removed from A1 and A2
 % totalpts_Cloud1 = cat(1, points_Cloud1_A1, points_Cloud1_A2);
-% totalpts_Cloud2 = cat(1, points_Cloud2_A1, points_Cloud2_A2);
-% % Repeat_check_C1 = unique(totalpts_Cloud1);
-% % Repeat_check_C2 = unique(totalpts_Cloud2);
-% % L1_C1 = length(totalpts_Cloud1);
-% % L2_C1 = length(Repeat_check_C1);
-% % L1_C2 = length(totalpts_Cloud2);
-% % L2_C2 = length(Repeat_check_C2);
-% % pts_repeated_C1 = L1_C1-L2_C1
-% % pts_repeated_C2 = L1_C2-L2_C2
+% totalpts_Cloud10 = cat(1, points_Cloud10_A1, points_Cloud10_A2);
 % 
-% 
-% % Remove points from each point cloud for both analysis 1 and analysis 2
-% ptCloud1_A1 = ptCloud1;
-% ptCloud1_A1(points_Cloud1_A1,:) = NaN;
-% ptCloud2_A1 = ptCloud2;
-% ptCloud2_A1(points_Cloud2_A1,:) = NaN;
-% ptCloud1_A2 = ptCloud1;
+
+% Repeat_check_C1 = unique(totalpts_Cloud1);
+% Repeat_check_C10 = unique(totalpts_Cloud10);
+% L1_C1 = length(totalpts_Cloud1);
+% L2_C1 = length(Repeat_check_C1);
+% L1_C10 = length(totalpts_Cloud10);
+% L2_C10= length(Repeat_check_C10);
+% pts_repeated_C1 = L1_C1-L2_C1;
+% pts_repeated_C10 = L1_C10-L2_C10;
+
+% SHOW POINTS REMOVED BY SHADOW MITIGATION IN REAL SCENE
+figure(3)
+hold on 
+plot3(ptCloud1(points_Cloud1_A1,1), ptCloud1(points_Cloud1_A1,2), ptCloud1(points_Cloud1_A1,3), '.', 'Color', '#0072BD')
+hold on 
+plot3(ptCloud10(points_Cloud10_A1,1), ptCloud10(points_Cloud10_A1,2), ptCloud10(points_Cloud10_A1,3), '.', 'Color', '#D95319')
+
+% % SHOW POINT REMOVED BY NEW SHADOW MITIGATION IN REAL SCENE
+% figure(3)
+% plot3(ptCloud1_vrem(:,1), ptCloud1_vrem(:,2), ptCloud1_vrem(:,3), '.')
+% hold on 
+% plot3(ptCloud10_vrem(:,1), ptCloud10_vrem(:,2), ptCloud10_vrem(:,3), '.')
+% hold on 
+% plot3(ptCloud1(points_Cloud1_FIRST,1), ptCloud1(points_Cloud1_FIRST,2), ptCloud1(points_Cloud1_FIRST,3), '.')
+% hold on 
+% plot3(ptCloud10(points_Cloud10_FIRST,1), ptCloud10(points_Cloud10_FIRST,2), ptCloud10(points_Cloud10_FIRST,3), '.')
+
+
+
+
+% LOOKING AT SPECIFIC VOXELS 
+
+
+% figure(3)
+% plot3(ptCloud1_vrem(:,1), ptCloud1_vrem(:,2), ptCloud1_vrem(:,3), '.', 'Color', [.7 .7 .7])
+% hold on 
+% plot3(ptCloud10_vrem(:,1), ptCloud10_vrem(:,2), ptCloud10_vrem(:,3), '.', 'Color', [128 128 128]/255)
+% hold on 
+% plot3(ptCloud1_vrem(Voxels1{34,3},1),ptCloud1_vrem(Voxels1{34,3},2), ptCloud1_vrem(Voxels1{34,3},3), '.', 'Color', '#0072BD')
+% hold on 
+% plot3(ptCloud10_vrem(Voxels10{34,3},1),ptCloud10_vrem(Voxels10{34,3},2), ptCloud10_vrem(Voxels10{34,3},3), '.', 'Color', '#D95319')
+
+% figure(3)
+% hold on 
+% plot3(ptCloud1_vrem(points_Cloud1_A1(Voxels1{18,3},1)),ptCloud1_vrem(points_Cloud1_A1(Voxels1{18,3},2)), ptCloud1_vrem(points_Cloud1_A1(Voxels1{18,3},3), '.')
+% hold on 
+% plot3(ptCloud10_vrem(points_Cloud10_A1(Voxels10{18,3},1)),ptCloud10_vrem(points_Cloud10_A1(Voxels10{18,3},2)), ptCloud10_vrem(points_Cloud10_A1(Voxels10{18,3},3), '.')
+
+%******************************************************
+
+% Remove points from each point cloud for both analysis 1 and analysis 2
+ptCloud1_A1 = ptCloud1_vrem;
+ptCloud1_A1(points_Cloud1_A1,:) = NaN;
+ptCloud10_A1 = ptCloud10_vrem;
+ptCloud10_A1(points_Cloud10_A1,:) = NaN;
+
+
+% % COMMENTING OUT ANALYSIS 2 UNTIL ANALYSIS ONE SOLVED AND COMPLETED
+% ptCloud1_A2 = ptCloud1_vrem;
 % ptCloud1_A2(points_Cloud1_A2,:) = NaN;
-% ptCloud2_A2 = ptCloud2;
-% ptCloud2_A2(points_Cloud2_A2,:) = NaN;
-% 
+% ptCloud10_A2 = ptCloud10_vrem;
+% ptCloud10_A2(points_Cloud10_A2,:) = NaN;
+
+ptCloud1_A1NEW = ptCloud1_vrem;
+ptCloud1_A1NEW(points_Cloud1_FIRST,:) = NaN;
+ptCloud10_A1NEW = ptCloud10_vrem;
+ptCloud10_A1NEW(points_Cloud10_FIRST,:) = NaN;
+
+
+% LOOKING AT SPECIFIC VOXELS 
+
+% figure(2)
+% hold on 
+% plot3(ptCloud1_vrem(Voxels1{18,3},1),ptCloud1_vrem(Voxels1{18,3},2), ptCloud1_vrem(Voxels1{18,3},3), '.', 'color', 'm')
+% hold on 
+% plot3(ptCloud10_vrem(Voxels10{18,3},1),ptCloud10_vrem(Voxels10{18,3},2), ptCloud10_vrem(Voxels10{18,3},3), '.', 'color', 'g')
+
+% figure(3)
+% hold on 
+% plot3(ptCloud1_A1(Voxels1{34,3},1),ptCloud1_A1(Voxels1{34,3},2), ptCloud1_A1(Voxels1{34,3},3), '.')
+% hold on 
+% plot3(ptCloud10_A1(Voxels10{34,3},1),ptCloud10_A1(Voxels10{34,3},2), ptCloud10_A1(Voxels10{34,3},3), '.')
+
+% figure(4)
+% plot3(ptCloud1_A1(Voxels1{18,2},1),ptCloud1_A1(Voxels1{18,2},2), ptCloud1_A1(Voxels1{18,2},3), '.', 'Color', '#0072BD')
+% hold on 
+% plot3(ptCloud10_A1(Voxels10{18,2},1),ptCloud10_A1(Voxels10{18,2},2), ptCloud10_A1(Voxels10{18,2},3), '.', 'Color', '#D95319')
+
 % % Create clouds with both analyses removed
+% % COMMENTING OUT ANALYSIS 2 UNTIL ANALYSIS ONE SOLVED AND COMPLETED
 % ptCloud1_A1_A2 = ptCloud1;
-% ptCloud2_A1_A2 = ptCloud2;
+% ptCloud10_A1_A2 = ptCloud10;
 % ptCloud1_A1_A2(totalpts_Cloud1,:) = NaN;
-% ptCloud2_A1_A2(totalpts_Cloud2,:) = NaN;
+% ptCloud10_A1_A2(totalpts_Cloud10,:) = NaN;
+
+% figure(1)
+% hold on 
+% plot3(ptCloud1(totalpts_Cloud1,1), ptCloud1(totalpts_Cloud1,2), ptCloud1(totalpts_Cloud1,3), '.')
+% hold on 
+% plot3(ptCloud10(totalpts_Cloud10,1), ptCloud10(totalpts_Cloud10,2), ptCloud10(totalpts_Cloud10,3), '.')
+
+% ********************************************************
+
+% Plot new point clouds after shadow mitigation analysis 1
+% CHECK FIGURE NUMBERS
+% ORIGINAL SHADOW MITIGATION 
+figure(4)
+plot3(ptCloud1_A1(:,1),ptCloud1_A1(:,2),ptCloud1_A1(:,3),'.')
+hold on
+plot3(ptCloud10_A1(:,1),ptCloud10_A1(:,2),ptCloud10_A1(:,3),'.')
+title('Shadow Mitig. Analysis 1 removed')
+
+% NEW SHADOW MITIGATION 
+figure(5)
+plot3(ptCloud1_A1NEW(:,1),ptCloud1_A1NEW(:,2),ptCloud1_A1NEW(:,3),'.')
+hold on
+plot3(ptCloud10_A1NEW(:,1),ptCloud10_A1NEW(:,2),ptCloud10_A1NEW(:,3),'.')
+title('Shadow Mitig. NEW METHOD')
+
+
+
 % 
 % 
-% % % Plot new point clouds after shadow mitigation analysis 1
-% % % CHECK FIGURE NUMBERS
-% % figure(5)
-% % plot3(ptCloud1_A1(:,1),ptCloud1_A1(:,2),ptCloud1_A1(:,3),'.')
-% % hold on
-% % plot3(ptCloud2_A1(:,1),ptCloud2_A1(:,2),ptCloud2_A1(:,3),'.')
-% % title('Shadow Mitig. Analysis 1 removed')
-% % 
-% % 
-% % % PLOT NEW POINT CLOUDS AFTER SHADOW MITIGATION analysis 2
-% % figure(6)
-% % plot3(ptCloud1_A2(:,1),ptCloud1_A2(:,2),ptCloud1_A2(:,3),'.')
-% % hold on
-% % plot3(ptCloud2_A2(:,1),ptCloud2_A2(:,2),ptCloud2_A2(:,3),'.')
-% % title('Shadow Mitig. Analysis 2 removed')
-% 
+% % PLOT NEW POINT CLOUDS AFTER SHADOW MITIGATION analysis 2
+% figure(6)
+% plot3(ptCloud1_A2(:,1),ptCloud1_A2(:,2),ptCloud1_A2(:,3),'.')
+% hold on
+% plot3(ptCloud2_A2(:,1),ptCloud2_A2(:,2),ptCloud2_A2(:,3),'.')
+% title('Shadow Mitig. Analysis 2 removed')
+
 % % PLOT NEW POINT CLOUDS COMBINING BOTH SHADOW MITIGATION ANALYSES
 % figure(3)
 % plot3(ptCloud1_A1_A2(:,1),ptCloud1_A1_A2(:,2),ptCloud1_A1_A2(:,3),'.')
 % hold on 
-% plot3(ptCloud2_A1_A2(:,1),ptCloud2_A1_A2(:,2),ptCloud2_A1_A2(:,3),'.')
+% plot3(ptCloud10_A1_A2(:,1),ptCloud10_A1_A2(:,2),ptCloud10_A1_A2(:,3),'.')
 % title('Shadow Mitig. Analysis 1 AND 2 removed')
-% 
-% 
-% 
-% % ************* COMBINING DOMAIN BOUNDARY ERROR AND SHADOW MITIG.*********
-% % Create a new point cloud 1 and point cloud two for the combined shadow
-% % mitigation and domain boundary error removal
-% 
-% % Pt Cloud 1
-% ptCloud1_shad_domrem = ptCloud1_domrem;
-% ptCloud1_shad_domrem(totalpts_Cloud1,:) = NaN;
-% % Pt Cloud 2
-% ptCloud2_shad_domrem = ptCloud2_domrem;
-% ptCloud2_shad_domrem(totalpts_Cloud2,:) = NaN;
-% 
-% 
-% % Voxel distribution for polar clouds with domain boundary pts removed 
-% Voxels1_domrem = sph_vox_dist(ptCloud1_pol_domrem, arc_d, band_amt, elev_dif, zero_el);
-% Voxels2_domrem = sph_vox_dist(ptCloud2_pol_domrem, arc_d, band_amt, elev_dif, zero_el);
-% 
-% % Voxel distribution for polar clouds with shadow mitigation 
-% % FIRST: create new polar point cloud after shadow mitigation 
-% ptCloud1_pol_shad = conv_to_polar(ptCloud1_A1_A2, initial_o);
-% ptCloud2_pol_shad = conv_to_polar(ptCloud2_A1_A2, initial_o);
-% Voxels1_shad = sph_vox_dist(ptCloud1_pol_shad, arc_d, band_amt, elev_dif, zero_el);
-% Voxels2_shad = sph_vox_dist(ptCloud2_pol_shad, arc_d, band_amt, elev_dif, zero_el);
-% 
-% % Voxel distribution for polar clouds with shadow mitigation AND domain boundary removal 
-% % ********* $$$$$ POTENTIALLY CHANGE INITIAL COORDS $$$$$ **********
-% % FIRST: create new polar point cloud after combination of domrem and shad.
-% ptCloud1_pol_dr_shad = conv_to_polar(ptCloud1_shad_domrem, initial_o); %mid_o
-% ptCloud2_pol_dr_shad = conv_to_polar(ptCloud2_shad_domrem, initial_o); %mid_o
-% Voxels1_shad_dr = sph_vox_dist(ptCloud1_pol_dr_shad, arc_d, band_amt, elev_dif, zero_el);
-% Voxels2_shad_dr = sph_vox_dist(ptCloud2_pol_dr_shad, arc_d, band_amt, elev_dif, zero_el);
-% 
+
+
+
+% ************* COMBINING DOMAIN BOUNDARY ERROR AND SHADOW MITIG.*********
+% Create a new point cloud 1 and point cloud two for the combined shadow
+% mitigation and domain boundary error removal
+% ***NOTE: ONLY USING ANALYSIS 1 HERE
+% *** IMPLEMENT ANALYSIS 2 LATER USING "totalpts_CloudXX"
+% Pt Cloud 1
+ptCloud1_DR_shad = ptCloud1_domrem;
+ptCloud1_DR_shad(points_Cloud1_A1,:) = NaN;
+% Pt Cloud 10
+ptCloud10_DR_shad = ptCloud10_domrem;
+ptCloud10_DR_shad(points_Cloud10_A1,:) = NaN;
+
+% Combining DOMAIN BOUNDARY, VR, AND SHADOW MITIG
+% Using new shadow mitigation algorithm (FIRST SET OF POINTS)
+% Pt Cloud 1
+ptCloud1_DR_shad1 = ptCloud1_domrem;
+ptCloud1_DR_shad1(points_Cloud1_A1,:) = NaN;
+% Pt Cloud 10
+ptCloud10_DR_shad1 = ptCloud10_domrem;
+ptCloud10_DR_shad1(points_Cloud10_FIRST,:) = NaN;
+
+
+
+% Voxel distribution for polar clouds with shadow mitigation 
+% FIRST: create new polar point cloud after shadow mitigation 
+% ***NOTE: ONLY USING ANALYSIS 1 HERE
+% *** IMPLEMENT ANALYSIS 2 LATER USING "ptCloudXX_A1_A2"
+ptCloud1_pol_shad = conv_to_polar(ptCloud1_A1, initial_o);
+ptCloud10_pol_shad = conv_to_polar(ptCloud10_A1, initial_o);
+ptCloud1_pol_shad_F = conv_to_polar(ptCloud1_A1NEW, initial_o);
+ptCloud10_pol_shad_F = conv_to_polar(ptCloud10_A1NEW, initial_o);
+Voxels1_shad = sph_vox_dist(ptCloud1_pol_shad, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_shad = sph_vox_dist(ptCloud10_pol_shad, arc_d, band_amt, elev_dif, zero_el);
+Voxels1_shad_FIRST = sph_vox_dist(ptCloud1_pol_shad_F, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_shad_FIRST = sph_vox_dist(ptCloud10_pol_shad_F, arc_d, band_amt, elev_dif, zero_el);
+Voxels1_domrem = sph_vox_dist(ptCloud1_pol_domrem, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_domrem = sph_vox_dist(ptCloud10_pol_domrem, arc_d, band_amt, elev_dif, zero_el);
+
+% Voxel distribution for polar clouds with shadow mitigation AND domain boundary removal 
+% ********* $$$$$ POTENTIALLY CHANGE INITIAL COORDS $$$$$ **********
+% FIRST: create new polar point cloud after combination of domrem and shad.
+ptCloud1_pol_DR_shad = conv_to_polar(ptCloud1_DR_shad, initial_o); %mid_o
+ptCloud10_pol_DR_shad = conv_to_polar(ptCloud10_DR_shad, initial_o); %mid_o
+ptCloud1_pol_domrem_shad = conv_to_polar(ptCloud1_DR_shad, initial_o);
+ptCloud10_pol_domrem_shad = conv_to_polar(ptCloud10_DR_shad, initial_o);
+
+Voxels1_VR_shad = sph_vox_dist(ptCloud1_pol_DR_shad, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_VR_shad = sph_vox_dist(ptCloud10_pol_DR_shad, arc_d, band_amt, elev_dif, zero_el);
+Voxels1_DR_shad = sph_vox_dist(ptCloud1_pol_domrem_shad, arc_d, band_amt, elev_dif, zero_el);
+Voxels10_DR_shad = sph_vox_dist(ptCloud10_pol_domrem_shad, arc_d, band_amt, elev_dif, zero_el);
+
+
 % % Make a plot to visualize the points removed from domain boundary and ...
 % % ... shadow mitigation 
 % figure(4)
@@ -498,27 +619,47 @@ Voxels10_B = sph_vox_dist(ptCloud10_pol_B, arc_d, band_amt, elev_dif, zero_el);
 % hold on 
 % plot3(ptCloud2(totalpts_Cloud2,1),ptCloud2(totalpts_Cloud2,2),ptCloud2(totalpts_Cloud2,3),'.')
 % 
-% % Make a plot for points REMOVED (shadow mitig. and domain boundary)
-% figure(5)
-% plot3(ptCloud1_shad_domrem(:,1), ptCloud1_shad_domrem(:,2), ptCloud1_shad_domrem(:,3), '.')
+% Make a plot for points REMOVED (shadow mitig. and domain boundary)
+figure(6)
+plot3(ptCloud1_DR_shad(:,1), ptCloud1_DR_shad(:,2), ptCloud1_DR_shad(:,3), '.')
+hold on 
+plot3(ptCloud10_DR_shad(:,1), ptCloud10_DR_shad(:,2), ptCloud10_DR_shad(:,3), '.')
+%*******************************************************************************
+
+
+
+
+
+
+
+% Plotting voxels that show the difference between the original largest errors 
+% % Before shaodw mitigation 
+% figure(4)
+% plot3(ptCloud1(Voxels1{23,1},1),ptCloud1(Voxels1{23,1},2), ptCloud1(Voxels1{23,1},3), '.')
 % hold on 
-% plot3(ptCloud2_shad_domrem(:,1), ptCloud2_shad_domrem(:,2), ptCloud2_shad_domrem(:,3), '.')
+% plot3(ptCloud10(Voxels10{23,1},1),ptCloud10(Voxels10{23,1},2), ptCloud10(Voxels10{23,1},3), '.')
+% % AFTER shadow mitigation
+% figure(5)
+% plot3(ptCloud1_A1_A2(Voxels1{23,1},1),ptCloud1_A1_A2(Voxels1{23,1},2), ptCloud1_A1_A2(Voxels1{23,1},3), '.')
+% hold on 
+% plot3(ptCloud10_A1_A2(Voxels10{23,1},1),ptCloud10_A1_A2(Voxels10{23,1},2), ptCloud10_A1_A2(Voxels10{23,1},3), '.')
+% 
+% figure(2)
+% hold on 
+% plot3(ptCloud1_vrem(Voxels1_vrem{19,3},1),ptCloud1_vrem(Voxels1_vrem{19,3},2), ptCloud1_vrem(Voxels1_vrem{19,3},3), '.', 'Color', '#EDB120')
+% hold on 
+% plot3(ptCloud10_vrem(Voxels10_vrem{19,3},1),ptCloud10_vrem(Voxels10_vrem{19,3},2), ptCloud10_vrem(Voxels10_vrem{19,3},3), '.', 'Color', '#7E2F8E')
+% 
+% % 
+% figure(3)
+% plot3(ptCloud1_vrem(Voxels1_vrem{7,1},1),ptCloud1_vrem(Voxels1_vrem{7,1},2), ptCloud1_vrem(Voxels1_vrem{7,1},3), '.')
+% hold on 
+% plot3(ptCloud10_vrem(Voxels10_vrem{7,1},1),ptCloud10_vrem(Voxels10_vrem{7,1},2), ptCloud10_vrem(Voxels10_vrem{7,1},3), '.')
 
-
-
-
-
-
-% UP TO THIS POINT *********************************
-figure(3)
-plot3(ptCloud1(Voxels1{5,2},1),ptCloud1(Voxels1{5,2},2), ptCloud1(Voxels1{5,2},3), '.')
-hold on 
-plot3(ptCloud10(Voxels10{5,2},1),ptCloud10(Voxels10{5,2},2), ptCloud10(Voxels10{5,2},3), '.')
-
-figure(2)
-plot3(ptCloud1(Voxels1{5,2},1),ptCloud1(Voxels1{5,2},2), ptCloud1(Voxels1{5,2},3), '.')
-hold on 
-plot3(ptCloud10(Voxels10{5,2},1),ptCloud10(Voxels10{5,2},2), ptCloud10(Voxels10{5,2},3), '.')
+% figure(1)
+% plot3(ptCloud1(Voxels1{5,2},1),ptCloud1(Voxels1{5,2},2), ptCloud1(Voxels1{5,2},3), '.')
+% hold on 
+% plot3(ptCloud10(Voxels10{5,2},1),ptCloud10(Voxels10{5,2},2), ptCloud10(Voxels10{5,2},3), '.')
 
 % *************** Mean calculations ************************
 % % *** CARTESIAN 
@@ -530,23 +671,41 @@ means10_cart = calc_means_cart(Voxels10_cart, ptCloud10, v_L, v_W, v_H);
 means1 = calc_means_sph(Voxels1, ptCloud1, v_az, v_elev);
 means10 = calc_means_sph(Voxels10, ptCloud10, v_az, v_elev);
 
-% % *** Domain boundary error pts removed 
-% means1_domrem = calc_means_sph(Voxels1_domrem, ptCloud1_domrem, v_az, v_elev);
-% means2_domrem = calc_means_sph(Voxels2_domrem, ptCloud2_domrem, v_az, v_elev);
+% *** Vehicle points removed 
+means1_vrem = calc_means_sph(Voxels1_vrem, ptCloud1_vrem, v_az, v_elev);
+means10_vrem = calc_means_sph(Voxels10_vrem, ptCloud10_vrem, v_az, v_elev);
 % 
-% % *** Shadow Mitigation 
-% means1_shad = calc_means_sph(Voxels1_shad, ptCloud1_A1_A2, v_az, v_elev);
-% means2_shad = calc_means_sph(Voxels2_shad, ptCloud2_A1_A2, v_az, v_elev);
-% 
+% *** Shadow Mitigation 
+% NOTE USING ONLY ANALYSIS 1
+% NOTE VEHICLE IS REMOVED AS WELL (makes next quiver unnecessary)
+means1_shad = calc_means_sph(Voxels1_shad, ptCloud1_A1, v_az, v_elev);
+means10_shad = calc_means_sph(Voxels10_shad, ptCloud10_A1, v_az, v_elev);
+
 % % *** Shadow Mitigation and Domain Boundary error pts removed
-% means1_shad_dr = calc_means_sph(Voxels1_shad_dr, ptCloud1_shad_domrem, v_az, v_elev);
-% means2_shad_dr = calc_means_sph(Voxels2_shad_dr, ptCloud2_shad_domrem, v_az, v_elev);
+% means1_VR_shad = calc_means_sph(Voxels1_VR_shad, ptCloud1_VR_shad, v_az, v_elev);
+% means10_VR_shad = calc_means_sph(Voxels10_VR_shad, ptCloud10_VR_shad, v_az, v_elev);
+
+% *** NEW Shadow Mitigation - first group of points 
+means1_shad_F = calc_means_sph(Voxels1_shad_FIRST, ptCloud1_A1NEW, v_az, v_elev);
+means10_shad_F = calc_means_sph(Voxels10_shad_FIRST, ptCloud10_A1NEW, v_az, v_elev);
+
+% *** DOMAIN BOUNDARY removal with vehicle removal
+means1_domrem = calc_means_sph(Voxels1_domrem, ptCloud1_domrem, v_az, v_elev);
+means10_domrem = calc_means_sph(Voxels10_domrem, ptCloud10_domrem, v_az, v_elev);
+
+% *** DOMAIN BOUNDARY and SHADOW MITIG
+means1_domrem_shad = calc_means_sph(Voxels1_DR_shad, ptCloud1_DR_shad, v_az, v_elev);
+means10_domrem_shad = calc_means_sph(Voxels10_DR_shad, ptCloud10_DR_shad, v_az, v_elev);
+
 
 means_dif_cart = calc_mean_dif_cart(means1_cart, means10_cart, Voxels1_cart, Voxels10_cart, v_L, v_W, v_H);
-means_dif = calc_mean_dif_sph(means1, means10, Voxels1, Voxels10, v_az, v_elev);
-% means_dif_domrem = calc_mean_dif_sph(means1_domrem, means2_domrem, Voxels1_domrem, Voxels2_domrem, v_az, v_elev);
-% means_dif_shad = calc_mean_dif_sph(means1_shad, means2_shad, Voxels1_shad, Voxels2_shad, v_az, v_elev);
-% means_dif_shad_dr = calc_mean_dif_sph(means1_shad_dr, means2_shad_dr, Voxels1_shad_dr, Voxels2_shad_dr, v_az, v_elev);
+means_dif = calc_mean_dif_sph(means1, means10, Voxels1, Voxels10, v_az, v_elev, point_n);
+means_dif_vrem = calc_mean_dif_sph(means1_vrem, means10_vrem, Voxels1_vrem, Voxels10_vrem, v_az, v_elev, point_n);
+means_dif_shad = calc_mean_dif_sph(means1_shad, means10_shad, Voxels1_shad, Voxels10_shad, v_az, v_elev, point_n);
+means_dif_shad_F = calc_mean_dif_sph(means1_shad_F, means10_shad_F, Voxels1_shad_FIRST, Voxels10_shad_FIRST, v_az, v_elev, point_n);
+% means_dif_VR_shad = calc_mean_dif_sph(means1_VR_shad, means10_VR_shad, Voxels1_VR_shad, Voxels10_VR_shad, v_az, v_elev, point_n);
+means_dif_domrem = calc_mean_dif_sph(means1_domrem, means10_domrem, Voxels1_domrem, Voxels10_domrem, v_az, v_elev, point_n);
+means_dif_DR_shad = calc_mean_dif_sph(means1_domrem_shad, means10_domrem_shad, Voxels1_DR_shad, Voxels10_DR_shad, v_az, v_elev, point_n);
 
 % *************** Quiver Plot ******************************
 % Define total number of voxels 
@@ -575,56 +734,103 @@ U_q = quiver_setup_sph(vox_number, means_dif, v_az, v_elev, pos_x);
 V_q = quiver_setup_sph(vox_number, means_dif, v_az, v_elev, pos_y);
 W_q = quiver_setup_sph(vox_number, means_dif, v_az, v_elev, pos_z);
 
-% % DOMAIN BOUNDARY ERRORS REMOVED ***
-% X_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_x);
-% Y_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_y);
-% Z_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_z);
-% U_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_x);
-% V_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_y);
-% W_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_z);
+% VEHICLE REMOVED FROM SCENE ***
+X_q_VR = quiver_setup_sph(vox_number, means1_vrem, v_az, v_elev, pos_x);
+Y_q_VR = quiver_setup_sph(vox_number, means1_vrem, v_az, v_elev, pos_y);
+Z_q_VR = quiver_setup_sph(vox_number, means1_vrem, v_az, v_elev, pos_z);
+U_q_VR = quiver_setup_sph(vox_number, means_dif_vrem, v_az, v_elev, pos_x);
+V_q_VR = quiver_setup_sph(vox_number, means_dif_vrem, v_az, v_elev, pos_y);
+W_q_VR = quiver_setup_sph(vox_number, means_dif_vrem, v_az, v_elev, pos_z);
 % 
-% % SHADOW MITIGATION ERRORS REMOVED **
-% X_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_x);
-% Y_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_y);
-% Z_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_z);
-% U_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_x);
-% V_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_y);
-% W_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_z);
+% SHADOW MITIGATION ERRORS REMOVED **
+X_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_x);
+Y_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_y);
+Z_q_shad = quiver_setup_sph(vox_number, means1_shad, v_az, v_elev, pos_z);
+U_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_x);
+V_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_y);
+W_q_shad = quiver_setup_sph(vox_number, means_dif_shad, v_az, v_elev, pos_z);
 % 
-% % DOMAIN BOUNDARY AND SHADOW MITIGATION ERRORS REMOVED
-% X_q_shad_dr = quiver_setup_sph(vox_number, means1_shad_dr, v_az, v_elev, pos_x);
-% Y_q_shad_dr = quiver_setup_sph(vox_number, means1_shad_dr, v_az, v_elev, pos_y);
-% Z_q_shad_dr = quiver_setup_sph(vox_number, means1_shad_dr, v_az, v_elev, pos_z);
-% U_q_shad_dr = quiver_setup_sph(vox_number, means_dif_shad_dr, v_az, v_elev, pos_x);
-% V_q_shad_dr = quiver_setup_sph(vox_number, means_dif_shad_dr, v_az, v_elev, pos_y);
-% W_q_shad_dr = quiver_setup_sph(vox_number, means_dif_shad_dr, v_az, v_elev, pos_z);
+% % VEHICLE REMOVED AND SHADOW MITIGATION ERRORS REMOVED
+% X_q_VR_shad = quiver_setup_sph(vox_number, means1_VR_shad, v_az, v_elev, pos_x);
+% Y_q_VR_shad = quiver_setup_sph(vox_number, means1_VR_shad, v_az, v_elev, pos_y);
+% Z_q_VR_shad = quiver_setup_sph(vox_number, means1_VR_shad, v_az, v_elev, pos_z);
+% U_q_VR_shad = quiver_setup_sph(vox_number, means_dif_VR_shad, v_az, v_elev, pos_x);
+% V_q_VR_shad = quiver_setup_sph(vox_number, means_dif_VR_shad, v_az, v_elev, pos_y);
+% W_q_VR_shad = quiver_setup_sph(vox_number, means_dif_VR_shad, v_az, v_elev, pos_z);
 
+% SHADOW MITIGATION NEW VERSION (FOCUS ON FIRST POINTS)
+X_q_shad_F = quiver_setup_sph(vox_number, means1_shad_F, v_az, v_elev, pos_x);
+Y_q_shad_F = quiver_setup_sph(vox_number, means1_shad_F, v_az, v_elev, pos_y);
+Z_q_shad_F = quiver_setup_sph(vox_number, means1_shad_F, v_az, v_elev, pos_z);
+U_q_shad_F = quiver_setup_sph(vox_number, means_dif_shad_F, v_az, v_elev, pos_x);
+V_q_shad_F = quiver_setup_sph(vox_number, means_dif_shad_F, v_az, v_elev, pos_y);
+W_q_shad_F = quiver_setup_sph(vox_number, means_dif_shad_F, v_az, v_elev, pos_z);
 
-% Form quiver plot 
-figure(4)
-quiver3(X_q_cart, Y_q_cart, Z_q_cart, U_q_cart*10, V_q_cart*10, W_q_cart*10, 'AutoScale', 'off')
+% DOMAIN BOUNDARY REMOBVAL (with vehicle removed)
+X_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_x);
+Y_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_y);
+Z_q_DR = quiver_setup_sph(vox_number, means1_domrem, v_az, v_elev, pos_z);
+U_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_x);
+V_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_y);
+W_q_DR = quiver_setup_sph(vox_number, means_dif_domrem, v_az, v_elev, pos_z);
+
+% DOMAIN BOUNDARY and SHADOW MITIGATION (with vehicle removed)
+X_q_DR_shad = quiver_setup_sph(vox_number, means1_domrem_shad, v_az, v_elev, pos_x);
+Y_q_DR_shad = quiver_setup_sph(vox_number, means1_domrem_shad, v_az, v_elev, pos_y);
+Z_q_DR_shad = quiver_setup_sph(vox_number, means1_domrem_shad, v_az, v_elev, pos_z);
+U_q_DR_shad = quiver_setup_sph(vox_number, means_dif_DR_shad, v_az, v_elev, pos_x);
+V_q_DR_shad = quiver_setup_sph(vox_number, means_dif_DR_shad, v_az, v_elev, pos_y);
+W_q_DR_shad = quiver_setup_sph(vox_number, means_dif_DR_shad, v_az, v_elev, pos_z);
+% 
+
+% % Form quiver plot 
+% figure(4)
+% quiver3(X_q_cart, Y_q_cart, Z_q_cart, U_q_cart*10, V_q_cart*10, W_q_cart*10, 'AutoScale', 'off')
 
 % CHANGE FIGURE NUMBERS TO MATCH SEQUENTIAL ORDER
-figure(5)
-quiver3(X_q, Y_q, Z_q, U_q, V_q, W_q) %, 'AutoScale', 'off')
+figure(6)
+quiver3(X_q, Y_q, Z_q, U_q, V_q, W_q, 'AutoScale', 'off')
 % axis equal
 
+figure(7)
+quiver3(X_q_VR, Y_q_VR, Z_q_VR, U_q_VR, V_q_VR, W_q_VR, 'AutoScale', 'off')
+title("Vector Plot with Vehicle removed")
+
+figure(8)
+quiver3(X_q_shad, Y_q_shad, Z_q_shad, U_q_shad, V_q_shad, W_q_shad, 'AutoScale', 'off')
+title("Vector Plot with shadow mitigation algorithm applied")
+
 % figure(8)
-% quiver3(X_q_DR, Y_q_DR, Z_q_DR, U_q_DR, V_q_DR, W_q_DR, 'AutoScale', 'off')
-% title("Vector Plot with domain boundary errors removed")
-% 
-% figure(9)
-% quiver3(X_q_shad, Y_q_shad, Z_q_shad, U_q_shad*5, V_q_shad*5, W_q_shad*5, 'AutoScale', 'off')
-% title("Vector Plot with shadow mitigation algorithm applied")
-% 
-% figure(10)
-% quiver3(X_q_shad_dr, Y_q_shad_dr, Z_q_shad_dr, U_q_shad_dr*5, V_q_shad_dr*5, W_q_shad_dr*5, 'AutoScale', 'off')
+% quiver3(X_q_shad_F, Y_q_shad_F, Z_q_shad_F, U_q_shad_F, V_q_shad_F, W_q_shad_F, 'AutoScale', 'off')
+% title("Vector Plot with NEW shadow mitigation algorithm applied")
+
+% figure(8)
+% quiver3(X_q_VR_shad, Y_q_VR_shad, Z_q_VR_shad, U_q_VR_shad, V_q_VR_shad, W_q_VR_shad, 'AutoScale', 'off')
 % title("Vector Plot with domain boundary rem. and shadow mitigation")
 
+figure(9)
+quiver3(X_q_DR, Y_q_DR, Z_q_DR, U_q_DR, V_q_DR, W_q_DR, 'AutoScale', 'off')
+title("Vector Plot with domain boundary errors removed")
+
+figure(10)
+quiver3(X_q_DR_shad, Y_q_DR_shad, Z_q_DR_shad, U_q_DR_shad, V_q_DR_shad, W_q_DR_shad, 'AutoScale', 'off')
+title("Domain boundary errors removed and shadow mitigation")
 
 %**********************************************************
 % ********************** Functions ************************
 % *********************************************************
+
+% Function that takes the PC file and converts it into a point cloud
+function ptCloud_i = create_cloud(im_i)
+    x_i = im_i(:,:,1);
+    y_i = im_i(:,:,2);
+    z_i = im_i(:,:,3);
+    x_i_s = format_ptCloud(x_i);
+    y_i_s = format_ptCloud(y_i);
+    z_i_s = format_ptCloud(z_i);
+    ptCloud_i = [x_i_s y_i_s z_i_s];
+end
+
 
 % Function that takes values of x (or y or z) double and converts to a
 % format usable for ptCloud arithmetic 
@@ -767,7 +973,8 @@ function points_disc = shadow_mitig(ptCloud_pol, Voxels, jump, min_pts, arc_d, b
                 diff = Vij(l) - Vij(l-1);
                 if diff > jump
                     if l - l_min > min_pts
-                        l_max = l-1;
+                        l_max = l-1; 
+                        break
                     else
                         l_min = l;
 
@@ -776,6 +983,7 @@ function points_disc = shadow_mitig(ptCloud_pol, Voxels, jump, min_pts, arc_d, b
             end
             % Add a check for empty voxels
             if length(Vij) == 0
+            elseif l_max - l_min < min_pts
             else
                 r_min = Vij(l_min);
                 r_max = Vij(l_max);
@@ -786,6 +994,156 @@ function points_disc = shadow_mitig(ptCloud_pol, Voxels, jump, min_pts, arc_d, b
                 points_vox_disc = cat(1, below_rr, above_rr);
                 points_disc = cat(1, points_vox_disc, points_disc);
             end
+        end
+    end
+end
+
+% Function that implements a NEW VERSION of the shadow mitigation algorithm
+% Inputs: 
+% 1) Polar point cloud
+% 2) Array of voxels with distributed pts
+% 3) Jump param
+% 4) Min pts param
+% 5) Arc length per voxel (az)
+% 6) Band amount (elev)
+% 7) Difference in elevation
+% 8) Zero elevation point 
+% Outputs: Array of points to be effected by shadow mitigation 
+function points_disc = shadow_mitig_first(ptCloud_pol, Voxels, jump, min_pts, arc_d, band_amt, elev_dif, zero_el)
+    points_disc = [];
+    V_rad = zeros(length(ptCloud_pol), 1);
+    v_az = ceil(360/arc_d);
+    v_elev = ceil(elev_dif/band_amt);
+    for i = 1:v_az
+        for j = 1:v_elev
+            az_upper = (i*arc_d)-180;
+            az_lower = (i*arc_d)-180 - arc_d;
+            elev_upper = (j*band_amt)-zero_el;
+            elev_lower = (j*band_amt)-zero_el-band_amt;
+            Voxelij = Voxels{i,j};
+            radii = ptCloud_pol(Voxelij,2);
+            Vij = sort(radii);
+            l_min = 1;
+            l_max = length(Vij);
+            for l = 2:length(Vij)
+                diff = Vij(l) - Vij(l-1);
+                if diff > jump
+                    if l - l_min > min_pts
+                        l_max = l-1; 
+                        break
+                    else
+                        l_max = l_min;
+                        break
+                    end
+                end
+            end
+            % Add a check for empty voxels
+            if length(Vij) == 0
+            % elseif l_max - l_min < min_pts
+            else
+                r_min = Vij(l_min);
+                r_max = Vij(l_max);
+                below_rr = find(ptCloud_pol(:,2)<r_min & az_lower<rad2deg(ptCloud_pol(:,1)) & rad2deg(ptCloud_pol(:,1))<az_upper & elev_lower<rad2deg(ptCloud_pol(:,3)) & rad2deg(ptCloud_pol(:,3))<elev_upper);
+                % ptCloud_new(below_rr,:) = NaN;
+                above_rr = find(ptCloud_pol(:,2)>r_max & az_lower<rad2deg(ptCloud_pol(:,1)) & rad2deg(ptCloud_pol(:,1))<az_upper & elev_lower<rad2deg(ptCloud_pol(:,3)) & rad2deg(ptCloud_pol(:,3))<elev_upper);
+                % ptCloud_new(above_rr,:) = NaN;
+                points_vox_disc = cat(1, below_rr, above_rr);
+                points_disc = cat(1, points_vox_disc, points_disc);
+            end
+        end
+    end
+end
+
+% Function that implements the THIRD VERSION of the shadow mitigation algorithm
+% Uses both clouds to find group of points that meets the threshold in both
+% Inputs: 
+% 1) Polar point cloud 1
+% 2) Polar point cloud 2
+% 3) Array of voxels 1 with distributed pts
+% 4) Array of voxels 2 with distributed pts
+% 5) Jump param
+% 6) Min pts param
+% 7) Arc length per voxel (az)
+% 8) Band amount (elev)
+% 9) Difference in elevation
+% 10) Zero elevation point 
+% Outputs: Array of points to be removed for each cloud
+
+function [points_disc_1 points_disc_2] = shadow_mitig_3(ptCloud_pol_1, ptCloud_pol_2, Voxels1, Voxels2, jump, min_pts, arc_d, band_amt, elev_dif, zero_el)
+    points_disc_1 = [];
+    points_disc_2 = [];
+    V_rad_1 = zeros(length(ptCloud_pol_1), 1);
+    v_az = ceil(360/arc_d);
+    v_elev = ceil(elev_dif/band_amt);
+    for i = 1:v_az
+        for j = 1:v_elev
+            az_upper = (i*arc_d)-180;
+            az_lower = (i*arc_d)-180 - arc_d;
+            elev_upper = (j*band_amt)-zero_el;
+            elev_lower = (j*band_amt)-zero_el-band_amt;
+            Voxelij_1 = Voxels1{i,j};
+            Voxelij_2 = Voxels2{i,j};
+            radii_1 = ptCloud_pol_1(Voxelij_1,2);
+            radii_2 = ptCloud_pol_2(Voxelij_2,2);
+            Vij_1 = sort(radii_1);
+            Vij_2 = sort(radii_2);
+            l_min = 1;
+            l_max = length(Vij_1);
+            for l = 2:length(Vij_1)
+                w = 0;
+                diff = Vij_1(l) - Vij_1(l-1);
+                if diff > jump
+                    for t = l_min:l
+                        range_jump1 = range_jump1 + Vij_1(t);
+                    end
+                    w = w+1;
+                    jumps1(w,:) = range_jump1;
+                    l_min = l;
+                end
+            end
+            
+            for l = 2:length(Vij_2)
+                w = 0;
+                diff = Vij_2(l) - Vij_2(l-1);
+                if diff > jump
+                    for t = l_min:l
+                        range_jump2 = range_jump2 + Vij_2(t);
+                    end
+                    w = w+1;
+                    jumps2(w,:) = range_jump2;
+                    l_min = l;
+                end
+            end
+
+
+            % NEXT STEPS:
+            % loop through the jumps variables 
+            % for each element, if the length of the row for each is over
+            % the threshold, than that becomes the range of points we want
+
+
+
+            %         if l - l_min > min_pts
+            %             l_max = l-1; 
+            %             break
+            %         else
+            %             l_min = l;
+            % 
+            %         end
+            % end
+            % % Add a check for empty voxels
+            % if length(Vij_1) == 0
+            % elseif l_max - l_min < min_pts
+            % else
+            %     r_min = Vij_1(l_min);
+            %     r_max = Vij_1(l_max);
+            %     below_rr = find(ptCloud_pol_1(:,2)<r_min & az_lower<rad2deg(ptCloud_pol_1(:,1)) & rad2deg(ptCloud_pol_1(:,1))<az_upper & elev_lower<rad2deg(ptCloud_pol_1(:,3)) & rad2deg(ptCloud_pol_1(:,3))<elev_upper);
+            %     % ptCloud_new(below_rr,:) = NaN;
+            %     above_rr = find(ptCloud_pol_1(:,2)>r_max & az_lower<rad2deg(ptCloud_pol_1(:,1)) & rad2deg(ptCloud_pol_1(:,1))<az_upper & elev_lower<rad2deg(ptCloud_pol_1(:,3)) & rad2deg(ptCloud_pol_1(:,3))<elev_upper);
+            %     % ptCloud_new(above_rr,:) = NaN;
+            %     points_vox_disc = cat(1, below_rr, above_rr);
+            %     points_disc = cat(1, points_vox_disc, points_disc);
+            % end
         end
     end
 end
@@ -842,6 +1200,21 @@ function voxels_m = calc_means_sph(Voxels, ptCloud, v_az, v_elev)
     end
 end
 
+% Function that finds points containing the vehicle in a specific pt cloud
+% Inputs: 
+% 1) Original point cloud of the voxels
+% 2) Polar point cloud of the voxels
+% 3) Maximum range of the vehicle
+function points_vehicle_rem = rem_vehicle(ptCloud, ptCloud_pol, range)
+    points_vehicle_rem = [];
+    for i = 1:length(ptCloud)
+        if ptCloud_pol(i,2) < range
+            points_vehicle_rem = [points_vehicle_rem i];
+        end
+    end
+end
+
+
 % Function that finds difference of means for CARTESIAN point clouds
 % Inputs:
 % 1) Means of voxels 1
@@ -858,7 +1231,7 @@ function means_dif = calc_mean_dif_cart(means1, means2, voxels1, voxels2, v_L, v
         for j = 1:v_W
             for k = 1:v_H
                 % Specify a minimum number of points to recognize a voxel 
-                if length(voxels1{i,j,k}) >= 10 && length(voxels2{i,j,k}) >= 10
+                if length(voxels1{i,j,k}) >= 50 && length(voxels2{i,j,k}) >= 50
                     x_dif = means2{i,j,k}(1,1) - means1{i,j,k}(1,1);
                     y_dif = means2{i,j,k}(1,2) - means1{i,j,k}(1,2);
                     z_dif = means2{i,j,k}(1,3) - means1{i,j,k}(1,3);
@@ -880,20 +1253,29 @@ end
 % 4) Voxel distribution 2
 % 5) Voxels in the azimuth
 % 6) Voxels in the elevation range
+% 7) Minimum points threshold 
 % Outputs: Voxels with mean difference bewteen each voxel 
 
 
-function means_dif = calc_mean_dif_sph(means1, means2, voxels1, voxels2, v_az, v_elev)
+function means_dif = calc_mean_dif_sph(means1, means2, voxels1, voxels2, v_az, v_elev, min_pts)
     means_dif{v_az, v_elev} = [];
     for i = 1:v_az
         for j = 1:v_elev
             % Specify a minimum number of points to recognize a voxel 
-            if length(voxels1{i,j}) >= 10 && length(voxels2{i,j}) >= 10
+            if length(voxels1{i,j}) >= min_pts && length(voxels2{i,j}) >= min_pts
                 x_dif = means2{i,j}(1,1) - means1{i,j}(1,1);
                 y_dif = means2{i,j}(1,2) - means1{i,j}(1,2);
                 z_dif = means2{i,j}(1,3) - means1{i,j}(1,3);
-                mean_dif_pt = [x_dif y_dif z_dif];
-                means_dif{i,j} = mean_dif_pt;
+                if abs(x_dif) > 13 | abs(y_dif) > 13 | abs(z_dif) > 13
+                    x_dif = 0;
+                    y_dif = 0;
+                    z_dif = 0;
+                    mean_dif_pt = [x_dif y_dif z_dif];
+                    means_dif{i,j} = mean_dif_pt;
+                else
+                    mean_dif_pt = [x_dif y_dif z_dif];
+                    means_dif{i,j} = mean_dif_pt;
+                end
             else
                 means_dif{i,j} = [0 0 0];
             end
