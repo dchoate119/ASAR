@@ -10,7 +10,7 @@ close all
 %import stl
 % Locate file to display scene 
 % Test evironment which Dan made
-FileName = 'TestEnvironment.stl';  
+FileName = 'TestEnvironment.STL';  
 
 % Open and read the stl file of point
 OpenFile = stlread(FileName);
@@ -312,11 +312,11 @@ ptCloud2 = (ptCloud2 - relpos) * ((rotationM)^-1);
 % NOTE: SUBTRACTING 3 from the z direction to match mesh plot 
 figure(1)
 hold on 
-plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.', 'Color', colorGray)
+plot3(ptCloud1(:,1),ptCloud1(:,2),ptCloud1(:,3),'.')%, 'Color', colorGray)
 % hold on
 % plot3(ptCloud2b(:,1),ptCloud2b(:,2),ptCloud2b(:,3),'.')
 hold on 
-plot3(ptCloud2(:,1),ptCloud2(:,2),ptCloud2(:,3),'.', 'Color', colorGray)
+plot3(ptCloud2(:,1),ptCloud2(:,2),ptCloud2(:,3),'.')%, 'Color', colorGray)
 % legend("Original", "Second Scan","Matched Scene")
 
 % ******************** POLAR COORDS ******************************
@@ -356,7 +356,6 @@ remove_pts_upper = domain_error_above(ptCloud1_pol_B, height, max_angle);
 total_pts_domrem_1 = cat(2, remove_pts_lower, remove_pts_upper);
 
 
-
 ptCloud1_domrem = ptCloud1;
 ptCloud1_domrem(remove_pts_lower,:) = NaN;
 ptCloud1_domrem(remove_pts_upper,:) = NaN;
@@ -377,11 +376,11 @@ remove_pts_upper_B = domain_error_above(ptCloud2_pol, height, max_angle);
 total_pts_domrem_2 = cat(2, remove_pts_lower_B, remove_pts_upper_B);
 
 % Plot total points to be removed from cloud 1
-figure(1)
-hold on 
-plot3(ptCloud1(total_pts_domrem_1,1),ptCloud1(total_pts_domrem_1,2),ptCloud1(total_pts_domrem_1,3),'.', 'Color', '#0072BD')
-hold on 
-plot3(ptCloud2(total_pts_domrem_2,1),ptCloud2(total_pts_domrem_2,2),ptCloud2(total_pts_domrem_2,3),'.', 'Color', '#D95319')
+% figure(1)
+% hold on 
+%plot3(ptCloud1(total_pts_domrem_1,1),ptCloud1(total_pts_domrem_1,2),ptCloud1(total_pts_domrem_1,3),'.', 'Color', '#0072BD')
+%hold on 
+%plot3(ptCloud2(total_pts_domrem_2,1),ptCloud2(total_pts_domrem_2,2),ptCloud2(total_pts_domrem_2,3),'.', 'Color', '#D95319')
 
 
 
@@ -397,6 +396,7 @@ ptCloud2_domrem(remove_pts_upper_B,:) = NaN;
 
 
 total_pts_domrem_2 = cat(2, remove_pts_lower_B, remove_pts_upper_B);
+
 
 % Plot cloud 1 with points to be removed 
 % figure(1)
@@ -602,11 +602,11 @@ Voxels2_shad_dr = sph_vox_dist(ptCloud2_pol_dr_shad, arc_d, band_amt, elev_dif, 
 % hold on 
 % plot3(ptCloud2(totalpts_Cloud2,1),ptCloud2(totalpts_Cloud2,2),ptCloud2(totalpts_Cloud2,3),'.')
 
-% Make a plot for points REMOVED (shadow mitig. and domain boundary)
-figure(2)
-plot3(ptCloud1_shad_domrem(:,1), ptCloud1_shad_domrem(:,2), ptCloud1_shad_domrem(:,3), '.')
-hold on 
-plot3(ptCloud2_shad_domrem(:,1), ptCloud2_shad_domrem(:,2), ptCloud2_shad_domrem(:,3), '.')
+% % Make a plot for points REMOVED (shadow mitig. and domain boundary)
+% figure(2)
+% plot3(ptCloud1_shad_domrem(:,1), ptCloud1_shad_domrem(:,2), ptCloud1_shad_domrem(:,3), '.')
+% hold on 
+% plot3(ptCloud2_shad_domrem(:,1), ptCloud2_shad_domrem(:,2), ptCloud2_shad_domrem(:,3), '.')
 
 % *************** Mean calculations ************************
 % % *** CARTESIAN 
@@ -638,31 +638,31 @@ means_dif_shad_dr = calc_mean_dif_sph(means1_shad_dr, means2_shad_dr, Voxels1_sh
 
 % Finding next largest means 
 % CAN CHANGE GRAPHING DATA FOR EACH STEP 
-figure(2)
-hold on 
-plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},3), '.')
-hold on
-plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},3), '.')
-hold on 
-plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},1),ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},2), ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},3), '.')
-hold on
-plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},1),ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},2), ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},3), '.')
-figure(2)
-plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},3), '.')
-hold on
-plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},3), '.')
+% figure(2)
+% hold on 
+% plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},3), '.')
+% hold on
+% plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},3), '.')
+% hold on 
+% plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},1),ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},2), ptCloud1_shad_domrem(Voxels1_shad_dr{23,3},3), '.')
+% hold on
+% plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},1),ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},2), ptCloud2_shad_domrem(Voxels2_shad_dr{23,3},3), '.')
+% figure(2)
+% plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},3), '.')
+% hold on
+% plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},3), '.')
 
 
-figure(3)
-plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},3), '.')
-hold on
-plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},3), '.')
-
-
-figure(4)
-plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},3), '.')
-hold on
-plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},3), '.')
+% figure(3)
+% plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{22,4},3), '.')
+% hold on
+% plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{22,4},3), '.')
+% 
+% 
+% figure(4)
+% plot3(ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},1),ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},2), ptCloud1_shad_domrem(Voxels1_shad_dr{5,4},3), '.')
+% hold on
+% plot3(ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},1),ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},2), ptCloud2_shad_domrem(Voxels2_shad_dr{5,4},3), '.')
 
 % *************** Quiver Plot ******************************
 % Define total number of voxels 
@@ -721,10 +721,10 @@ W_q_shad_dr = quiver_setup_sph(vox_number, means_dif_shad_dr, v_az, v_elev, pos_
 % quiver3(X_q_cart, Y_q_cart, Z_q_cart, U_q_cart, V_q_cart, W_q_cart, 'AutoScale', 'off')
 
 % CHANGE TO FIGURE 3 IF ALSO USING CARTESIAN 
-% figure(3)
-% quiver3(X_q, Y_q, Z_q, U_q, V_q, W_q, 'AutoScale', 'off')
-% % axis equal
-% 
+figure(3)
+quiver3(X_q, Y_q, Z_q, U_q, V_q, W_q, 'AutoScale', 'off')
+% axis equal
+
 % figure(4)
 % quiver3(X_q_DR, Y_q_DR, Z_q_DR, U_q_DR*5, V_q_DR*5, W_q_DR*5, 'AutoScale', 'off')
 % title("Vector Plot with domain boundary errors removed")
