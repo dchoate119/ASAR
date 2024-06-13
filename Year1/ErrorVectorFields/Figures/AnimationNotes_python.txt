@@ -1,0 +1,14 @@
+Notes on the files shared by MATT - transition to Python 
+
+rcParams: runtime configuration settings for matplotlib
+some cofigurable rcParams: lines.linewidth, lines.linestyle, figure.figsize, image.interpolation, image.cmap (cmap is color map)
+
+%matplotlib notebook : makes your plots visible within the notebook, and adds interactivity like zooming, panning, and data inspection
+
+mesh loaded in as a stl file 
+
+point clouds loaded in as a txt file, then loaded using "np.loadtxt()"
+
+np.shape : returns a tuple, and the elements give the lengths of the corresponding array dimensions 
+
+alpha = 1 is transparency
