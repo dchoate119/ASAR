@@ -28,7 +28,7 @@ s2 = 90; % Starting rotation for the elevation
 
 % Loop to gather frames between desired angles from a to b
 f1 = figure(1);
-f1.Visible = 'off';
+% f1.Visible = 'off';
 fs = [];
 for i = 1:t+1
     view(s1,s2)
@@ -51,12 +51,10 @@ for i = 1:t+1
     s2 = s2+d;
 end
 
-figure(2)
 axis('off')
-movie(fs,4);
-
-% 
-% fanimator(fs)
-% function frame = create_frame(view)
-% frame = 1
-% end
+axis tight 
+% ax = gca;
+% ax.NextPlot = 'replaceChildren';
+h = figure;
+% h.Visible = 'off';
+movie(h,fs,4);
