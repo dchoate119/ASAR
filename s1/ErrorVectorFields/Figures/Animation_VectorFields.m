@@ -21,10 +21,15 @@ quiver3(X_q, Y_q, Z_q, U_q, V_q, W_q, 'AutoScale', 'off')
 % view(90,0)
 
 % Set variable for degrees per frame 
-d = 5;
+d = 1;
 t = 90/d;
 s1 = 0; % Starting rotation for the azimuth 
 s2 = 90; % Starting rotation for the elevation 
+
+% set(gca,"NextPlot","replacechildren")
+v = VideoWriter("VectorFieldEX.avi");%,"Indexed AVI");
+open(v)
+% v.colormap = gcf;
 
 % Loop to gather frames between desired angles from a to b
 f1 = figure(1);
@@ -32,7 +37,8 @@ f1 = figure(1);
 fs = [];
 for i = 1:t+1
     view(s1,s2)
-    f = getframe(figure(1));
+    f = getframe(gcf);
+    writeVideo(v,f)
     fs = [fs f];
     s1 = s1+d;
     s2 = s2-d;
@@ -45,7 +51,8 @@ s2 = 0;
 figure(1)
 for i = 1:t+1
     view(s1,s2)
-    f = getframe(figure(1));
+    f = getframe(gcf);
+    writeVideo(v,f)
     fs = [fs f];
     s1 = s1-d;
     s2 = s2+d;
@@ -57,4 +64,7 @@ axis tight
 % ax.NextPlot = 'replaceChildren';
 h = figure;
 % h.Visible = 'off';
-movie(h,fs,4);
+movie(h,fs,2);
+
+
+close(v)
