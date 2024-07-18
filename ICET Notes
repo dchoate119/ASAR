@@ -1,0 +1,13 @@
+ICET Notes	
+# Variables to change
+# voxel size (fidelity)
+# minimum pts. per cell
+# remove moving (outlier rejection)
+
+#isSequence() ERROR fix 
+# search in utils.py doc 
+
+#SYNTAX QUESTION 
+# ICET_X_history[:,0] 
+# Explain the comma before the zero after the colon
+# Or if it is abter the number before the colon 
