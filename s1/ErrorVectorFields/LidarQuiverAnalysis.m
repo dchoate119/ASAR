@@ -11,6 +11,7 @@ close all
 % Locate file to display scene 
 % Test evironment which Dan made
 FileName = 'TestEnvironment.STL';  
+% Adding monstatic lidar sensor
 
 % Open and read the stl file of point
 OpenFile = stlread(FileName);
