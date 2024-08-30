@@ -21,7 +21,7 @@ def voxel_distribution(width, min_x, min_y, min_z, max_x, max_y, max_z, ptCloud)
     return vox_dist
 
 
-# Making a function that creates a plot of the point cloud with the specified voxel
+# Coloring the points of a specific voxel for visualization 
 
 def plot_spec_vox(vis, ptCloud, vox_dist, vox_ID, color): #, rbg_data = None):
     """ Coloring the points on an open3d plot for a specific voxel 
@@ -43,3 +43,14 @@ def plot_spec_vox(vis, ptCloud, vox_dist, vox_ID, color): #, rbg_data = None):
     vis.add_geometry(vox_pts)
     
     return vis
+
+# Fitting a gaussian distribution for a specific set of point 
+
+def fit_gaussian(pts):
+    """ Find the gaussian distribution from a set of points 
+    Inputs: pt cloud, or set of points 
+    Outputs: muh (mean), and sigma (st.dev) of pts as a covariance matrix
+    """
+    muh_pts = np.mean(pts, axis=0)
+    cov_pts = np.cov(pts, rowvar=False)
+    return muh_pts, cov_pts
