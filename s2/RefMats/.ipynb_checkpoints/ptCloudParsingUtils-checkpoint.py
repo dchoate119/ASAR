@@ -54,3 +54,60 @@ def fit_gaussian(pts):
     muh_pts = np.mean(pts, axis=0)
     cov_pts = np.cov(pts, rowvar=False)
     return muh_pts, cov_pts
+
+
+# Create a function for plotting an ellipse and bounding box on a voxel
+def plot_ellipse_box(vis, muh, cov, color):
+    """ Plotting an ellipse and bounding box for a group of pts
+    in a voxel 
+    Inputs: visualization, mean of the points, covariance of the points, color of ellipse
+    Outputs: Visualization with ellipse and bounding box
+    """
+    # Get eigenvalues and eigenvectors from covariance matrix 
+    eig_vals, eig_vect = np.linalg.eig(cov)
+    d_eig = (np.sqrt(eig_vals))*np.eye(3)
+    # Multiply by two for two standard deviations 
+    d_eig = d_eig*2
+
+    # Form the homogeneous transformation matrix 
+    A_trans = np.matmul(eig_vect, d_eig)
+    # Needs to be 4x4 for homogeneous, adding translation 
+    homo_trans = np.append(np.append(A_trans, np.zeros([3,1]), axis = 1), np.array([[0,0,0,1]]), axis = 0)
+    homo_trans[:3,-1] = muh
+
+    # Create a sphere mesh and transform into matrix using open3d
+    muh_sphere = o3d.geometry.TriangleMesh.create_sphere(radius = 1)
+    muh_sphere.transform(homo_trans)
+    muh_sphere.paint_uniform_color(color)
+
+    # Create a bounding box for the sphere 
+    muh_box = muh_sphere.get_oriented_bounding_box()
+
+    # Attain points and lines to plot the bounding box
+    points = np.array(muh_box.get_box_points())
+    
+    # Correlate points to form edges of the box
+    # NOTE: DO NOT MESS with this form for vertices
+    edges = [
+    [0, 1], [0, 3], [6, 1], [3, 6],  # Bottom face
+    [2, 7], [4, 7], [4, 5], [2, 5],  # Top face
+    [0, 2], [1, 7], [4, 6], [3, 5]   # Vertical edges
+    ]
+
+    # Create a LineSet object
+    lines = o3d.geometry.LineSet()
+
+    # Set points and edges
+    lines.points = o3d.utility.Vector3dVector(points)
+    lines.lines = o3d.utility.Vector2iVector(edges)
+
+    # Optionally, set the color of the lines to black
+    # lines.colors = o3d.utility.Vector3dVector([[0, 0, 0]] * len(edges))
+    lines.paint_uniform_color([0,0,0])
+    
+    # Add the resulting geometries
+    vis.add_geometry(muh_sphere)
+    vis.add_geometry(muh_box)
+    vis.add_geometry(lines)
+
+    return vis
