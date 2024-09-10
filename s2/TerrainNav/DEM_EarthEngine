@@ -1,0 +1,85 @@
+// Code writting for Google Earth Engine Database 
+// JAVASCRIPT 
+
+// Map DEM - Digital Elevation Model
+
+// Load countries database 
+
+var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017");
+var Ethiopia = countries.filter(ee.Filter.eq('country_na', "Ethiopia"));
+
+// Import elevation (DEM) 
+var dem = ee.Image('USGS/SRTMGL1_003');
+
+// Set visualization parameter
+var vis_parms = {
+  min: 0,
+  max: 4000,
+  palette: ['006633', 'E5FFCC', '662A00', 'D8D8D8', 'F5F5F5']};
+
+// Use color brewer for color organization
+
+// Display the DEM data 
+Map.addLayer(dem.clip(Ethiopia).updateMask(dem.gt(0)), vis_parms, 'DEM');
+Map.centerObject(Ethiopia, 6);
+
+
+// SECOND SCRIPT 
+
+// // Define the location of your campus
+// var mitCampus = ee.Geometry.Polygon([
+//   [[-71.099, 42.358],
+//   [-71.089, 42.358],
+//   [-71.089, 42.363],
+//   [-71.099, 42.363]]
+// ]);
+
+var tuftsCampus = ee.Geometry.Polygon([
+  [[-71.124, 42.403],
+   [-71.114, 42.403],
+   [-71.114, 42.408],
+   [-71.124, 42.408]]
+]);
+
+// Load the SRTM DEM dataset
+var srtm = ee.Image('USGS/SRTMGL1_003');
+
+// Clip the DEM to the area of interest
+// var dem = srtm.clip(mitCampus);
+var dem = srtm.clip(tuftsCampus);
+
+// Define visualization parameters
+var visParams = {
+  min: 0,
+  max: 50,
+  palette: ['006633', 'E5FFCC', '662A00', 'D8D8D8', 'F5F5F5']
+  // palette: ['blue', 'green', 'yellow', 'red']
+};
+
+// Center the map on the campus and add the DEM layer
+Map.centerObject(tuftsCampus, 15);
+Map.addLayer(dem, visParams, 'DEM');
+
+// Add a boundary for reference
+//Map.addLayer(mitCampus, {color: 'red'}, 'MIT Campus Boundary');
+
+
+
+// THIRD SCRIPT 
+
+// USING THE USGS 3DEP 
+
+// Define the location of Tufts University
+var location = ee.Geometry.Point([-71.1190, 42.4072]);
+
+// Load the USGS 3DEP DEM data
+var dem = ee.ImageCollection('USGS/3DEP/1M')
+            .filterBounds(location)
+            .first();  // Get the first image that intersects with the location
+
+// Display the DEM data
+Map.centerObject(dem, 14);
+Map.addLayer(dem, {min: 0, max: 100, palette: ['blue', 'green', 'yellow', 'red']}, '3DEP DEM');
+
+// Optionally, you can add the location marker
+Map.addLayer(ee.FeatureCollection([ee.Feature(location)]), {color: 'red'}, 'Tufts University');
