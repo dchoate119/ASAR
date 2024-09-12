@@ -111,3 +111,17 @@ def plot_ellipse_box(vis, muh, cov, color):
     vis.add_geometry(lines)
 
     return vis
+
+    
+
+# Drawing a simple transform with a homogeneous transformation matrix 
+def draw_transform_axes_o3d(vis,homo_trans):
+    """ Creating an axes xyz to represent a transform of pts
+    Inputs: the visualization, and homogeneous transformation
+    Outputs: the visualization with the new axes post-transform
+    """
+    axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    axes1 = copy.deepcopy(axes).transform(homo_trans)
+    vis.add_geometry(axes1)
+
+    return vis
