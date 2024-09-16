@@ -126,3 +126,62 @@ def draw_transform_axes_o3d(vis,homo_trans):
     vis.add_geometry(axes1)
 
     return vis
+
+
+# Plot the boundaries of a specific voxel 
+def plot_voxel_bound(vis, vox_ID, width, min_x, min_y, min_z, max_x, max_y, max_z):
+    """ Given a voxel ID number, plot the boundary for the voxel 
+    Inputs: visualizaion, voxel_ID, width, minimum pt xyz, maximum pt xyz
+    Outputs: plotted voxel boundary 
+    """
+    # Get the amount of voxels in x,y,z
+    vox_xx = np.ceil((max_x - min_x)/width)
+    vox_yy = np.ceil((max_y - min_y)/width)
+    vox_zz = np.ceil((max_z - min_z)/width)
+    
+    # Getting the x,y,z indices from a voxel number
+    z_specs = (vox_ID // (vox_xx*vox_yy)) + 1
+    y_specs = ((vox_ID - (vox_xx*vox_yy*(z_specs-1))) // vox_xx)+1
+    x_specs = vox_ID - (vox_xx*vox_yy*(z_specs-1)) - (vox_xx*(y_specs-1))
+    index_spec = [x_specs, y_specs, z_specs]
+
+    # Get location of the voxel based on the width of each voxel and index
+    location_x = (x_specs-1)*width + min_x
+    location_y = (y_specs-1)*width + min_y
+    location_z = (z_specs-1)*width + min_z
+    base_loc = [location_x, location_y, location_z]
+
+    # Add a cube visualization and create a bounding box 
+    # Create a cube with side length of 5
+    cube = o3d.geometry.TriangleMesh.create_box(width=width, height=width, depth=width)
+    # Move cube to base location
+    cube.translate(base_loc)
+    cube_box = cube.get_oriented_bounding_box()
+    
+    # Attain points and lines to plot the bounding box
+    points = np.array(cube_box.get_box_points())
+    
+    # Correlate points to form edges of the box
+    # NOTE: DO NOT MESS with this form for vertices
+    edges = [
+    [0, 1], [0, 3], [6, 1], [3, 6],  # Bottom face
+    [2, 7], [4, 7], [4, 5], [2, 5],  # Top face
+    [0, 2], [1, 7], [4, 6], [3, 5]   # Vertical edges
+    ]
+    
+    # Create a LineSet object
+    lines = o3d.geometry.LineSet()
+    
+    # Set points and edges
+    lines.points = o3d.utility.Vector3dVector(points)
+    lines.lines = o3d.utility.Vector2iVector(edges)
+    
+    # Optionally, set the color of the lines to black
+    # lines.colors = o3d.utility.Vector3dVector([[0, 0, 0]] * len(edges))
+    lines.paint_uniform_color([0,0,0])
+
+    vis.add_geometry(lines)
+
+    return vis
+        
+
