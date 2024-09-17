@@ -21,6 +21,8 @@ def voxel_distribution(width, min_x, min_y, min_z, max_x, max_y, max_z, ptCloud)
     return vox_dist
 
 
+
+
 # Coloring the points of a specific voxel for visualization 
 
 def plot_spec_vox(vis, ptCloud, vox_dist, vox_ID, color): #, rbg_data = None):
