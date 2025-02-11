@@ -110,7 +110,7 @@ class gNAV_agent:
 		Using pixel location of points
 		"""
 		# Define focal length 
-		focal = self.cameras[1].params[0]
+		focal = self.cameras[2].params[0]
 		self.focal = focal
 		# print(focal)
 		shape_im_y = self.im_gnd.shape[0]
