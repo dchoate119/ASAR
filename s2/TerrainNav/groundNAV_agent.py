@@ -41,6 +41,7 @@ class gNAV_agent:
 		Output: image IDs
 		"""
 		self.images_dict = {}
+		self.im_pts_2d = {}
 		im_ids = np.zeros((len(self.images)), dtype=int)
 		# print(self.images_c.items())
 
@@ -289,6 +290,134 @@ class gNAV_agent:
 		pts_2D = pts / pts[:, 2][:, np.newaxis]
 
 		return pts_2D
+
+
+	def plot_rect_im(self, x, y, width, height, imnum):
+		"""
+		Plotting a rectangle over the desired area of choice for ground plane point 
+		Input: x and y starting point, width and height crop size, image number
+		Output: plot with cropped section in red
+		Specified by user with x, y, width, height 
+		"""
+		# Make figure 
+		fig, ax = plt.subplots(figsize=(15,8))
+		# Draw rectangle 
+		rect = plt.Rectangle((x,y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+		# Grab correct image based on number indicator 
+		im_gnd_plt = self.images_dict[imnum]
+		im_gnd_plt = cv2.cvtColor(im_gnd_plt, cv2.COLOR_BGR2RGB)
+
+		# print(im_gnd_plt)
+
+		# Plot 
+		ax.imshow(im_gnd_plt)
+		ax.add_patch(rect)
+		ax.axis("off")
+
+		# Show plot 
+		plt.show()
+
+
+	def grab_image_pts(self, x, y, width, height, imnum):
+		"""
+		Grab points of an image (that we know are on ground plane)
+		Based on specified starting x and y location, width, height
+		Potentially automate process in future 
+		"""
+		# Define new variables for x, y, width, height 
+		self.x = x
+		self.y = y
+		self.width = width
+		self.height = height
+
+		pts_loc = np.zeros((height, width, 2), dtype=int)
+		pts_rgb = np.zeros((height, width, 3), dtype=int)
+		im_gnd = self.images_dict[imnum]
+		# print(im_gnd)
+
+		# Loop through each pixel 
+		for i in range(x, x+width):
+			for j in range(y, y+height):
+				# Pixel position in x and y
+				Px = i
+				Py = j
+				# Location in the array 
+				array_loc_col = Px-x
+				array_loc_row = Py-y
+				# RGB value
+				rgb = im_gnd[j,i]
+				rgb = rgb.astype(int)
+
+				# Place Px and Py in proper location 
+				pts_loc[array_loc_row][array_loc_col] = [Px, Py]
+				# Place rgb value in same location 
+				pts_rgb[array_loc_row][array_loc_col] = rgb
+
+		self.im_pts_2d[imnum] = {'pts': pts_loc}
+		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
+
+		return pts_loc, pts_rgb
+
+
+	def unit_vec_c(self, imnum):
+		"""
+		Create unit vectors in camera frame coords for desired pixels 
+		Using pixel location of points
+		"""
+		pts_loc = self.im_pts_2d[imnum]['pts']
+		pts_rgb = self.im_pts_2d[imnum]['rgbc']
+		im_imnum = self.images_dict[imnum]
+
+		shape_im_y = im_imnum.shape[0]
+		shape_im_x = im_imnum.shape[1]
+
+		# Calculate number of pixels for vector array
+		width = pts_loc.shape[0]
+		height = pts_loc.shape[1]
+		print(pts_loc.shape[0], pts_loc.shape[1])
+		n = width*height
+		pts_vec_c = np.zeros((n,3))
+		pts_rgb_gnd = np.zeros((n,3))
+
+		count = 0
+		for i in range(height):
+			for j in range(width):
+				Px = pts_loc[i][j][0]
+				Py = pts_loc[i][j][1]
+
+				# SHIFTING FOR IMAGE COORD FRAME 
+				# (wierd frame based on camera locations)
+				# x positive is DOWN, y positive is to LEFT, z into pg
+				Px = Px - shape_im_x/2
+				Py = -Py + shape_im_y/2
+				# Intermediate values for last shift
+				x_i = Px
+				y_i = Py
+				# Final pixel values 
+				Py = -x_i
+				Px = -y_i
+
+				# Magnituge of vector
+				mag = (Px**2 + Py**2 + focal**2)**0.5
+
+				# Place vector
+				pts_vec_c[count] = [Px/mag, Py/mag, focal/mag]
+
+				# RGB value
+				rgb_val = pts_rgb[i][j]
+				pts_rgb_gnd[count] = rgb_val
+
+				# Update
+				count += 1
+
+
+		pts_rgb_gnd = pts_rgb_gnd/255 # SCALED 
+
+		# self.pts_vec_c = pts_vec_c
+		# self.pts_rgb_gnd = pts_rgb_gnd
+
+		return pts_vec_c, pts_rgb_gnd
+
 
 
 		
