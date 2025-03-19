@@ -56,7 +56,7 @@ class gNAV_agent:
 
 		pts_loc = np.zeros((height, width, 2), dtype=int)
 		pts_rgb = np.zeros((height, width, 3), dtype=int)
-		self.im_gnd_plt = cv2.cvtColor(self.im_gnd, cv2.COLOR_BGR2RGB)
+		# self.im_gnd_plt = cv2.cvtColor(self.im_gnd, cv2.COLOR_BGR2RGB)
 
 		# Loop through each pixel 
 		for i in range(x, x+width):
@@ -68,7 +68,7 @@ class gNAV_agent:
 				array_loc_col = Px-x
 				array_loc_row = Py-y
 				# RGB value
-				rgb = self.im_gnd_plt[j,i]
+				rgb = self.im_gnd[j,i]
 				rgb = rgb.astype(int)
 
 				# Place Px and Py in proper location 
@@ -121,11 +121,14 @@ class gNAV_agent:
 		pts_vec_c = np.zeros((n,3))
 		pts_rgb_gnd = np.zeros((n,3))
 
+
 		count = 0
 		for i in range(self.height):
 			for j in range(self.width):
 				Px = pts_loc[i][j][0]
 				Py = pts_loc[i][j][1]
+
+				# print(Px, Py) # DEBUGGING
 
 				# SHIFTING FOR IMAGE COORD FRAME 
 				# (wierd frame based on camera locations)

@@ -21,10 +21,11 @@ class gNAV_agent:
 		self.pts3d_c_loc = pts3d_colm 		# Location of ptd3d file
 		self.images = images 				# Location of specific image files 
 		self.sat_ref = cv2.imread(sat_ref) 	# Satellite reference image
-		self.sat_ref = cv2.cvtColor(self.sat_ref, cv2.COLOR_RGB2GRAY)
+		self.sat_ref = cv2.cvtColor(self.sat_ref, cv2.COLOR_BGR2GRAY)
 		self.read_colmap_data()
 		self.image_parsing()
 		self.sat_im_init()
+		self.im_pts_best_guess = {}
 
 
 	def read_colmap_data(self):
@@ -42,6 +43,7 @@ class gNAV_agent:
 		"""
 		self.images_dict = {}
 		self.im_pts_2d = {}
+		self.im_mosaic = {}
 		im_ids = np.zeros((len(self.images)), dtype=int)
 		# print(self.images_c.items())
 
@@ -92,6 +94,7 @@ class gNAV_agent:
 		ref_rgb /= 255
 		self.ref_pts = ref_pts
 		self.ref_rgb = ref_rgb
+		self.tree = cKDTree(ref_pts)
 
 
 
@@ -372,9 +375,9 @@ class gNAV_agent:
 		shape_im_x = im_imnum.shape[1]
 
 		# Calculate number of pixels for vector array
-		width = pts_loc.shape[0]
-		height = pts_loc.shape[1]
-		print(pts_loc.shape[0], pts_loc.shape[1])
+		height = pts_loc.shape[0]
+		width = pts_loc.shape[1]
+		# print(pts_loc.shape[0], pts_loc.shape[1])
 		n = width*height
 		pts_vec_c = np.zeros((n,3))
 		pts_rgb_gnd = np.zeros((n,3))
@@ -384,6 +387,8 @@ class gNAV_agent:
 			for j in range(width):
 				Px = pts_loc[i][j][0]
 				Py = pts_loc[i][j][1]
+
+				# print(Px, Py)
 
 				# SHIFTING FOR IMAGE COORD FRAME 
 				# (wierd frame based on camera locations)
@@ -398,10 +403,10 @@ class gNAV_agent:
 				Px = -y_i
 
 				# Magnituge of vector
-				mag = (Px**2 + Py**2 + focal**2)**0.5
+				mag = (Px**2 + Py**2 + self.focal**2)**0.5
 
 				# Place vector
-				pts_vec_c[count] = [Px/mag, Py/mag, focal/mag]
+				pts_vec_c[count] = [Px/mag, Py/mag, self.focal/mag]
 
 				# RGB value
 				rgb_val = pts_rgb[i][j]
@@ -419,10 +424,146 @@ class gNAV_agent:
 		return pts_vec_c, pts_rgb_gnd
 
 
+	def get_pose_id(self, id):
+		"""
+		Get the pose transformation for a specific image id
+		Input: Image ID
+		Output: transform from camera to world coordinates
+		"""
+		# Get quaternion and translation vector
+		qvec = self.images_c[id].qvec
+		tvec = self.images_c[id].tvec[:,None]
+		# print(tvec)
 
-		
+		t = tvec.reshape([3,1])
+
+		# Create rotation matrix
+		Rotmat = qvec2rotmat(qvec) # Positive or negative does not matter
+		# print("\n Rotation matrix \n", Rotmat)
+
+		# Create 4x4 transformation matrix with rotation and translation
+		bottom = np.array([0.0, 0.0, 0.0, 1.0]).reshape([1, 4])
+		w2c = np.concatenate([np.concatenate([Rotmat, t], 1), bottom], 0)
+		c2w = np.linalg.inv(w2c)
+
+		return w2c, c2w
 
 
+	def pt_range(self, pts_vec, homog_t, origin):
+		"""
+		Finding the range of the point which intersects the ground plane 
+		Input: Unit vectors, homogeneous transform 
+		Output: Range for numbers, new 3D points 
+		"""
+
+		# Get translation vector 
+		t_cw = homog_t[:-1,-1]
+		a = np.dot(t_cw, self.grav_vec)
+		# Numerator
+		num = self.h_0 - a
+
+		ranges = np.zeros((len(pts_vec),1))
+		new_pts = np.zeros((len(pts_vec),3))
+
+		for i in range(len(pts_vec)):
+			# Range
+			u_w = pts_vec[i]
+			denom = np.dot(u_w, self.grav_vec)
+			r = num/denom
+
+			# New point 
+			new_vec = u_w*r
+			new_pt = origin + new_vec
+
+			ranges[i] = r
+			new_pts[i] = new_pt
+
+		return ranges, new_pts
+
+	def conv_to_gray(self, pts_rgb, imnum):
+		"""
+		Takes RGB values and converts to grayscale
+		Uses standard luminance-preserving transformation
+		Inputs: RGB values (nx3), image number 
+		Outputs: grayscale values (nx3) for open3d
+		"""
+
+		# Calculate intensity value
+		intensity = 0.299 * pts_rgb[:, 0] + 0.587 * pts_rgb[:, 1] + 0.114 * pts_rgb[:, 2]
+		# Create nx3
+		gray_colors = np.tile(intensity[:, np.newaxis], (1, 3))  # Repeat intensity across R, G, B channels
+		# print(gray_colors)
+
+		return gray_colors
+
+
+	def tform_create(self,x,y,z,roll,pitch,yaw):
+		"""
+		Creates a transformation matrix 
+		Inputs: translation in x,y,z, rotation in roll, pitch, yaw (DEGREES)
+		Output: Transformation matrix (4x4)
+		"""
+		# Rotation
+		roll_r, pitch_r, yaw_r = np.deg2rad([roll, pitch, yaw])
+		euler_angles = [roll_r, pitch_r, yaw_r]
+		rotmat = R.from_euler('xyz', euler_angles).as_matrix()
+
+		# Translation
+		trans = np.array([x,y,z]).reshape([3,1])
+
+		# Create 4x4
+		bottom = np.array([0.0, 0.0, 0.0, 1.0]).reshape([1,4])
+		tform = np.concatenate([np.concatenate([rotmat, trans], 1), bottom], 0)
+		# print("\nTransformation matrix \n", tform)
+
+		return tform 
+
+	def ssd_nxn(self, n, imnum):
+		"""
+		Takes a group points and calculates the sum of squared differences,
+		by shifting around an nxn grid to find lowest ssd
+		Inputs: n sized grid, image number 
+		Output: ssds for each location 
+		"""
+
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# print(shiftx, shifty)
+				# print(loc_pts)
+				# Difference Values
+				diffs = np.zeros((int(len(loc_pts)/100),1))
+				# Transformation matrix for shift
+				tform = self.tform_create(shiftx,shifty,0,0,0,0)
+				# Transform points
+				__, loc_pts_curr, loc_pts_vec = self.unit_vec_tform(loc_pts, self.origin_w, tform)
+
+				# SSD process for each transformation
+				count = 0
+				for i in range(0, len(loc_pts_curr), 100):
+					# Location of current point 
+					locx, locy = loc_pts_curr[i,:-1]
+					intensity = self.im_mosaic[imnum]['color_g'][i,0]
+					# print(locx, locy, intensity)
+					# Distance and index of nearest neighbor
+					dist, idx = self.tree.query([locx, locy, 1])
+					nearest_x, nearest_y = self.ref_pts[idx,:-1]
+					intensity_ref = self.ref_rgb[idx,0]
+					# Difference 
+					dif = intensity_ref - intensity
+					# print(dif)
+					diffs[count] = dif
+					count += 1
+
+
+				# Sum of squared differences
+				ssd_curr = np.sum(diffs**2)
+				print("\n Current SSD \n", ssd_curr)
+				ssds[shiftx+n, shifty+n] = ssd_curr
+
+		return ssds
 
 
    
