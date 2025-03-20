@@ -165,14 +165,14 @@ class gNAV_agent:
 
 		# Find gravity and height
 		self.grav_vec = self.grav_SVD(self.pts_gnd)
-		print('Gravity vector \n', self.grav_vec)
+		# print('Gravity vector \n', self.grav_vec)
 		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
-		print('\nHeight h_0 = ', self.h_0)
+		# print('\nHeight h_0 = ', self.h_0)
 
 		# Get focal length 
 		cam_id = list(self.cameras_c.keys())[0]
 		self.focal = self.cameras_c[cam_id].params[0]
-		print("Focal length \n", self.focal)
+		# print("Focal length \n", self.focal)
 
 
 		# Define coordinate frame 
@@ -356,8 +356,10 @@ class gNAV_agent:
 				# Place rgb value in same location 
 				pts_rgb[array_loc_row][array_loc_col] = rgb
 
+		corners = np.array([x,y,width,height])
 		self.im_pts_2d[imnum] = {'pts': pts_loc}
 		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
+		self.im_pts_2d[imnum]['corners'] = corners
 
 		return pts_loc, pts_rgb
 
