@@ -341,3 +341,50 @@ class gNAV_agent:
 		return ranges, new_pts
 
 
+# *********** OLD SSD VERSION
+def ssd_nxn(self, n, imnum):
+		"""
+		Takes a group points and calculates the sum of squared differences,
+		by shifting around an nxn grid to find lowest ssd
+		Inputs: n sized grid, image number 
+		Output: ssds for each location 
+		"""
+
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts']
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# print(shiftx, shifty)
+				# print(loc_pts)
+				# Difference Values
+				diffs = np.zeros((int(len(loc_pts)/100),1))
+				# Transformation matrix for shift
+				tform = self.tform_create(shiftx,shifty,0,0,0,0)
+				# Transform points
+				__, loc_pts_curr, loc_pts_vec = self.unit_vec_tform(loc_pts, self.origin_w, tform)
+
+				# SSD process for each transformation
+				count = 0
+				for i in range(0, len(loc_pts_curr), 100):
+					# Location of current point 
+					locx, locy = loc_pts_curr[i,:-1]
+					intensity = self.im_mosaic[imnum]['color_g'][i,0]
+					# print(locx, locy, intensity)
+					# Distance and index of nearest neighbor
+					dist, idx = self.tree.query([locx, locy, 1])
+					nearest_x, nearest_y = self.ref_pts[idx,:-1]
+					intensity_ref = self.ref_rgb[idx,0]
+					# Difference 
+					dif = intensity_ref - intensity
+					# print(dif)
+					diffs[count] = dif
+					count += 1
+
+
+				# Sum of squared differences
+				ssd_curr = np.sum(diffs**2)
+				print("\n Current SSD \n", ssd_curr)
+				ssds[shiftx+n, shifty+n] = ssd_curr
+
+		return ssds

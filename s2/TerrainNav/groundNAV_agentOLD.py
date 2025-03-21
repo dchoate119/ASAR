@@ -1,3 +1,5 @@
+# For version tracking purposes, this is for TTURF_v3
+
 import numpy as np
 import cv2
 import open3d as o3d 
@@ -248,6 +250,44 @@ class gNAV_agent:
 	def unit_vec_tform(self, pts_vec, origin, homog_t):
 		"""
 		Takes a set of unit vectors and transforms them according to a homogeneous transform
+		Input: Unit vectors, transform 
+		Output: Origin of new unit vectors, end points of new unit vectors, new unit vectors
+		"""
+		# Get new origin
+		origin_o = origin
+		origin_o = np.append(origin_o,1)
+		origin_o = origin_o.reshape(-1,1)
+		origin_n = homog_t @ origin_o
+		origin_n = origin_n[:-1]
+		origin_n = origin_n.flatten()
+
+		# Array for new locations and vectors 
+		pts_loc_n = np.zeros((len(pts_vec),3))
+		pts_vec_n = np.zeros((len(pts_vec),3))
+
+		for i in range(len(pts_vec)):
+			v = pts_vec[i]
+			# Make homogeneous
+			v = np.append(v,1)
+			v = v.reshape(-1,1)
+			# Transform 
+			v_trans = homog_t @ v
+
+			# Grab new pt and vector
+			pt = v_trans[:-1]
+			pt = pt.flatten()
+			vec = pt - origin_n
+
+			# Add to arrays
+			pts_loc_n[i] = pt
+			pts_vec_n[i] = vec
+
+
+		return origin_n, pts_loc_n, pts_vec_n
+
+	def unit_vec_tform_NEW(self, pts_vec, origin, homog_t):
+		"""
+		Takes a set of unit vectors and transforms them according to a homogeneous transform
 		**** TRYING TO SPEED UP WITH NEW VERSION ****
 		Input: Unit vectors, transform 
 		Output: Origin of new unit vectors, end points of new unit vectors, new unit vectors
@@ -351,6 +391,68 @@ class gNAV_agent:
 
 	def unit_vec_c(self, imnum):
 		"""
+		Create unit vectors in camera frame coords for desired pixels 
+		Using pixel location of points
+		"""
+		pts_loc = self.im_pts_2d[imnum]['pts']
+		pts_rgb = self.im_pts_2d[imnum]['rgbc']
+		im_imnum = self.images_dict[imnum]
+
+		shape_im_y = im_imnum.shape[0]
+		shape_im_x = im_imnum.shape[1]
+
+		# Calculate number of pixels for vector array
+		height = pts_loc.shape[0]
+		width = pts_loc.shape[1]
+		# print(pts_loc.shape[0], pts_loc.shape[1])
+		n = width*height
+		pts_vec_c = np.zeros((n,3))
+		pts_rgb_gnd = np.zeros((n,3))
+
+		count = 0
+		for i in range(height):
+			for j in range(width):
+				Px = pts_loc[i][j][0]
+				Py = pts_loc[i][j][1]
+
+				# print(Px, Py)
+
+				# SHIFTING FOR IMAGE COORD FRAME 
+				# (wierd frame based on camera locations)
+				# x positive is DOWN, y positive is to LEFT, z into pg
+				Px = Px - shape_im_x/2
+				Py = -Py + shape_im_y/2
+				# Intermediate values for last shift
+				x_i = Px
+				y_i = Py
+				# Final pixel values 
+				Py = -x_i
+				Px = -y_i
+
+				# Magnituge of vector
+				mag = (Px**2 + Py**2 + self.focal**2)**0.5
+
+				# Place vector
+				pts_vec_c[count] = [Px/mag, Py/mag, self.focal/mag]
+
+				# RGB value
+				rgb_val = pts_rgb[i][j]
+				pts_rgb_gnd[count] = rgb_val
+
+				# Update
+				count += 1
+
+
+		pts_rgb_gnd = pts_rgb_gnd/255 # SCALED 
+
+		# self.pts_vec_c = pts_vec_c
+		# self.pts_rgb_gnd = pts_rgb_gnd
+
+		return pts_vec_c, pts_rgb_gnd
+
+
+	def unit_vec_c_NEW(self, imnum):
+		"""
 		Create unit vectors in camera frame coordinates for desired pixels 
 		Using pixel location of points.
 		"""
@@ -408,6 +510,38 @@ class gNAV_agent:
 
 
 	def pt_range(self, pts_vec, homog_t, origin):
+		"""
+		Finding the range of the point which intersects the ground plane 
+		Input: Unit vectors, homogeneous transform 
+		Output: Range for numbers, new 3D points 
+		"""
+
+		# Get translation vector 
+		t_cw = homog_t[:-1,-1]
+		a = np.dot(t_cw, self.grav_vec)
+
+		# Numerator
+		num = self.h_0 - a
+
+		ranges = np.zeros((len(pts_vec),1))
+		new_pts = np.zeros((len(pts_vec),3))
+
+		for i in range(len(pts_vec)):
+			# Range
+			u_w = pts_vec[i]
+			denom = np.dot(u_w, self.grav_vec)
+			r = num/denom
+
+			# New point 
+			new_vec = u_w*r
+			new_pt = origin + new_vec
+
+			ranges[i] = r
+			new_pts[i] = new_pt
+
+		return ranges, new_pts
+
+	def pt_range_NEW(self, pts_vec, homog_t, origin):
 		"""
 		Finding the range of the point which intersects the ground plane 
 		Input: Unit vectors, homogeneous transform 
@@ -500,7 +634,7 @@ class gNAV_agent:
 		return inside_pts, inside_cg
 		
 
-	def ssd_nxn(self, n, imnum):
+	def ssd_NEW_nxn(self, n, imnum):
 		"""
 		New SSD process to run faster
 		Sum of squared differences. Shifts around pixels 
