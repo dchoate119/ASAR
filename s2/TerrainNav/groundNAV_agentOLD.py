@@ -345,7 +345,6 @@ class gNAV_agent:
 		# Show plot 
 		plt.show()
 
-
 	def grab_image_pts(self, x, y, width, height, imnum):
 		"""
 		Grab points of an image (that we know are on ground plane)
@@ -381,6 +380,36 @@ class gNAV_agent:
 				# Place rgb value in same location 
 				pts_rgb[array_loc_row][array_loc_col] = rgb
 
+		corners = np.array([x,y,width,height])
+		self.im_pts_2d[imnum] = {'pts': pts_loc}
+		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
+		self.im_pts_2d[imnum]['corners'] = corners
+
+		return pts_loc, pts_rgb
+
+
+	def grab_image_pts_NEW(self, x, y, width, height, imnum):
+		"""
+		Grab points of an image (that we know are on ground plane)
+		Based on specified starting x and y location, width, height
+		Potentially automate process in future 
+		"""
+
+		# Create grid of coords
+		x_coords = np.arange(x, x+width)
+		y_coords = np.arange(y, y+height)
+		Px, Py = np.meshgrid(x_coords, y_coords, indexing='xy')
+		# print(Px, Py)
+
+		# Stack points for array 
+		pts_loc = np.stack((Px, Py), axis=-1) # -1 forms a new axis 
+		# print(pts_loc)
+
+		# Extract RGB
+		im_gnd = self.images_dict[imnum]
+		pts_rgb = im_gnd[y:y+height, x:x+width].astype(int)
+
+		# Store in dict
 		corners = np.array([x,y,width,height])
 		self.im_pts_2d[imnum] = {'pts': pts_loc}
 		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
@@ -477,8 +506,8 @@ class gNAV_agent:
 		pts_vec_c = np.stack((Px / mag, Py / mag, np.full_like(Px, self.focal) / mag), axis=-1)  # Shape (H, W, 3)
 
 		# Reshape into (N, 3) where N = H * W
-		pts_vec_c = pts_vec_c.reshape(-1, 3)
-		pts_rgb_gnd = pts_rgb.reshape(-1, 3) / 255  # Normalize and reshape
+		pts_vec_c = pts_vec_c.reshape(-1, 3) # -1 computes number of rows (H*W)
+		pts_rgb_gnd = pts_rgb.reshape(-1, 3) / 255  # Normalize
 
 		return pts_vec_c, pts_rgb_gnd
 
@@ -682,5 +711,53 @@ class gNAV_agent:
 				ssds[shiftx+n, shifty+n] = ssd_curr
 
 		print(diffs.shape)
+
+		return ssds
+
+
+	def ssd_nxn_NEW(self, n, imnum):
+		"""
+		New SSD process to run faster
+		Sum of squared differences. Shifts around pixels 
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 5 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs] #, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts) #[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				# print(distances, indices)
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities 
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				print("SSD = ", ssd_curr)
+
+		print("Number of points used: ", diffs.shape)
 
 		return ssds
