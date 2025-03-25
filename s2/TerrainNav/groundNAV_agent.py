@@ -497,7 +497,7 @@ class gNAV_agent:
 		Input: n shift amount, image number
 		Output: sum of squared differences for each shift
 		"""
-		downs = 5 # Factor to downsample by 
+		downs = 1 # Factor to downsample by 
 		ssds = np.zeros((2*n+1,2*n+1))
 		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
 		# print(loc_pts)
@@ -522,6 +522,66 @@ class gNAV_agent:
 
 				# Find nearest points and calculate intensities
 				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				# print(distances, indices)
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities 
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				print("SSD = ", ssd_curr)
+
+		print("Number of points used: ", diffs.shape)
+
+		return ssds
+
+
+	def ssd_nxn_NEWL(self, n, imnum):
+		"""
+		New SSD process to run faster
+		New lookup process instead of using the trees
+		Sum of squared differences. Shifts around pixels 
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				print(downsampled_pts)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				print(shiftx,shifty)
+				print(shifted_loc_pts)
+
+
+
+
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+
+
+
+
+
+				
 				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
 				# print(distances, indices)
 
