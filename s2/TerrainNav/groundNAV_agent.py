@@ -27,6 +27,7 @@ class gNAV_agent:
 		self.image_parsing()
 		self.sat_im_init()
 		self.im_pts_best_guess = {}
+		self.ssds_curr = {}
 
 
 	def read_colmap_data(self):
@@ -531,10 +532,10 @@ class gNAV_agent:
 
 				# Store SSD value for the current shift
 				ssds[shiftx + n, shifty + n] = ssd_curr
-				print("SSD = ", ssd_curr)
+				# print("SSD = ", ssd_curr)
 
-		print("Number of points used: ", diffs.shape)
-
+		print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
 		return ssds
 
 
