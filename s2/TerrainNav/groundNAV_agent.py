@@ -372,7 +372,7 @@ class gNAV_agent:
 
 
 
-	def get_pose_id(self, id):
+	def get_pose_id(self, id,imnum):
 		"""
 		Get the pose transformation for a specific image id
 		Input: Image ID
@@ -394,10 +394,13 @@ class gNAV_agent:
 		w2c = np.concatenate([np.concatenate([Rotmat, t], 1), bottom], 0)
 		c2w = np.linalg.inv(w2c)
 
+		self.im_pts_2d[imnum]['w2c'] = w2c
+		self.im_pts_2d[imnum]['c2w'] = c2w
+
 		return w2c, c2w
 
 
-	def pt_range(self, pts_vec, homog_t, origin):
+	def pt_range(self, pts_vec, homog_t, origin, imnum):
 		"""
 		Finding the range of the point which intersects the ground plane 
 		Input: Unit vectors, homogeneous transform 
@@ -416,6 +419,8 @@ class gNAV_agent:
 
 		# Compute range
 		r = num/denom
+		self.im_pts_2d[imnum]['r'] = r
+		self.im_pts_2d[imnum]['origin'] = origin
 
 		# New points
 		new_pts = origin + pts_vec*r[:, np.newaxis]
@@ -542,7 +547,7 @@ class gNAV_agent:
 	def ssd_nxn_NEWL(self, n, imnum):
 		"""
 		New SSD process to run faster
-		New lookup process instead of using the trees
+		New lookup process instead of using the trees*****
 		Sum of squared differences. Shifts around pixels 
 		Input: n shift amount, image number
 		Output: sum of squared differences for each shift
@@ -561,39 +566,68 @@ class gNAV_agent:
 				# Downsample pts (grab only x and y)
 				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
 				downsampled_cg = inside_cg[::downs,0]
-				print(downsampled_pts)
+				# print(downsampled_pts)
 
 				# Shift points 
 				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
-				print(shiftx,shifty)
-				print(shifted_loc_pts)
+				# print(shiftx,shifty)
+				# print(shifted_loc_pts)
+
+				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT
+				print("Shifted local points\n", shifted_loc_pts)
+
+				# Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
+				# print(self.best_guess_tform)
+				best_guess_inv = np.linalg.inv(self.best_guess_tform)
+				# print(best_guess_inv)
+				__, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
+				loc_pts_ref[:, :2] /= self.best_guess_scale
+				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
+
+				# Ref plane to world coords
+				__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
+				# print("\nShould be the local points in world cords\n", loc_pts_wrd)
+
+				# World coords to world unit vectors
+				# print(self.im_pts_2d[imnum]['r'][:, np.newaxis])
+				pts_vec_w = (loc_pts_wrd - self.im_pts_2d[imnum]['origin']) / self.im_pts_2d[imnum]['r'][:, np.newaxis]
+				print("\nShould be the local points in world unit vecs\n", pts_vec_w)
+
+				# World unit vectors to camera unit vectors
+				__, __, loc_vec_cam = self.unit_vec_tform(pts_vec_w, self.origin_w, self.im_pts_2d[imnum]['w2c'])
+				print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
+
+				# Camera unit vectors --> 2D camera coords
 
 
 
 
 
-				# Build tree
-				tree = cKDTree(shifted_loc_pts[:,:2])
 
-				# Find nearest points and calculate intensities
-				distances, indices = tree.query(downsampled_pts, k=1)
+
+
+				# # Build tree
+				# tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# # Find nearest points and calculate intensities
+				# distances, indices = tree.query(downsampled_pts, k=1)
 
 
 
 
 
 				
-				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				# # nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
 				# print(distances, indices)
 
-				# Calculate SSDS
-				diffs = downsampled_cg - nearest_intensities 
-				ssd_curr = np.sum(diffs**2)
+				# # Calculate SSDS
+				# diffs = downsampled_cg - nearest_intensities 
+				# ssd_curr = np.sum(diffs**2)
 
-				# Store SSD value for the current shift
-				ssds[shiftx + n, shifty + n] = ssd_curr
-				print("SSD = ", ssd_curr)
+				# # Store SSD value for the current shift
+				# ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
 
-		print("Number of points used: ", diffs.shape)
+		# print("Number of points used: ", diffs.shape)
 
 		return ssds
