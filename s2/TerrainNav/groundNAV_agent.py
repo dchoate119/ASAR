@@ -359,6 +359,7 @@ class gNAV_agent:
 
 		# Compute magnitude of vectors
 		mag = np.sqrt(Px**2 + Py**2 + self.focal**2)  # Shape (H, W)
+		self.im_pts_2d[imnum]['mag'] = mag
 
 		# Compute unit vectors
 		pts_vec_c = np.stack((Px / mag, Py / mag, np.full_like(Px, self.focal) / mag), axis=-1)  # Shape (H, W, 3)
@@ -529,6 +530,7 @@ class gNAV_agent:
 				# Find nearest points and calculate intensities
 				distances, indices = tree.query(downsampled_pts, k=1)
 				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				print("NEAREST JAWNS", nearest_intensities)
 				# print(distances, indices)
 
 				# Calculate SSDS
@@ -564,23 +566,27 @@ class gNAV_agent:
 				# print(inside_pts.shape)
 
 				# Downsample pts (grab only x and y)
-				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
 				downsampled_cg = inside_cg[::downs,0]
-				# print(downsampled_pts)
+				print(downsampled_pts.shape)
 
 				# Shift points 
 				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
 				# print(shiftx,shifty)
-				# print(shifted_loc_pts)
+				print(shifted_loc_pts.shape)
 
-				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT
-				print("Shifted local points\n", shifted_loc_pts)
+				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
+				# This is as a sanity check
+				# For the real implementation, we are moving the satellite points (downsampled_pts) ...
+				# ... through this process
+				# print("Shifted local points\n", shifted_loc_pts)
 
 				# Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
 				# print(self.best_guess_tform)
 				best_guess_inv = np.linalg.inv(self.best_guess_tform)
 				# print(best_guess_inv)
 				__, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
+				# __, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
 				loc_pts_ref[:, :2] /= self.best_guess_scale
 				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
 
@@ -591,20 +597,167 @@ class gNAV_agent:
 				# World coords to world unit vectors
 				# print(self.im_pts_2d[imnum]['r'][:, np.newaxis])
 				pts_vec_w = (loc_pts_wrd - self.im_pts_2d[imnum]['origin']) / self.im_pts_2d[imnum]['r'][:, np.newaxis]
-				print("\nShould be the local points in world unit vecs\n", pts_vec_w)
+				# print("\nShould be the local points in world unit vecs\n", pts_vec_w)
 
 				# World unit vectors to camera unit vectors
 				__, __, loc_vec_cam = self.unit_vec_tform(pts_vec_w, self.origin_w, self.im_pts_2d[imnum]['w2c'])
-				print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
+				# print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
 
 				# Camera unit vectors --> 2D camera coords
+				# Go to camera space 
+				mag_flat = self.im_pts_2d[imnum]['mag'].reshape(-1)
+				# print("Mags", mag_flat)
+				locs = loc_vec_cam * mag_flat[:, None]
+				# print("\nLOCS\n", locs)
+				px, py = locs[:,0], locs[:,1]
+				# # Pixel shifts
+				PY = -px
+				PX = -py
+				# Re-center
+				Px = PX + (self.images_dict[imnum].shape[1])/2
+				Py = -PY + (self.images_dict[imnum].shape[0])/2
+				pts_2d = np.stack((Px, Py), axis=1)
+				pts_2d = pts_2d.reshape(self.im_pts_2d[imnum]['mag'].shape[0], self.im_pts_2d[imnum]['mag'].shape[1], 2)
+				pts_2d = np.round(pts_2d).astype(int)
+				# print("\nHopefully the 2d points\n", pts_2d)
+				# print("\nShould match this\n", self.im_pts_2d[imnum]['pts'])
+
+				# Get intensities from the 2D camera coords
+				x, y = pts_2d[...,0], pts_2d[...,1]
+				rgbvals = self.images_dict[imnum][y,x]
+				# print("\nIntensities\n", rgbvals)
+				# Flatten to (N, 3)
+				rgb_flat = rgbvals.reshape(-1, 3)
+				# Apply intensity formula
+				intensity = (0.299 * rgbvals[:, 0] +
+					0.587 * rgbvals[:, 1] +
+					0.114 * rgbvals[:, 2]).reshape(-1, 1)
+
+				print("\nIntensities\n", intensity)
+
+				# # Build tree
+				# tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# # Find nearest points and calculate intensities
+				# distances, indices = tree.query(downsampled_pts, k=1)
 
 
 
 
 
+				
+				# # nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				# print(distances, indices)
+
+				# # Calculate SSDS
+				# diffs = downsampled_cg - nearest_intensities 
+				# ssd_curr = np.sum(diffs**2)
+
+				# # Store SSD value for the current shift
+				# ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		# print("Number of points used: ", diffs.shape)
+
+		return ssds
 
 
+	def ssd_nxn_NEWnew(self, n, imnum):
+		"""
+		New SSD process to run faster
+		New lookup process instead of using the trees*****
+		Sum of squared differences. Shifts around pixels 
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				print(downsampled_pts.shape)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				print(shifted_loc_pts.shape)
+
+				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
+				# This is as a sanity check
+				# For the real implementation, we are moving the satellite points (downsampled_pts) ...
+				# ... through this process
+				# print("Shifted local points\n", shifted_loc_pts)
+
+				# 1. Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
+				# print(self.best_guess_tform)
+				best_guess_inv = np.linalg.inv(self.best_guess_tform)
+				# print(best_guess_inv)
+				__, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
+				# __, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
+				loc_pts_ref[:, :2] /= self.best_guess_scale
+				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
+
+				# 2. Ref plane to world coords
+				__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
+				# print("\nShould be the local points in world cords\n", loc_pts_wrd)
+
+				# HAVE NOT VERIFIED BELOW ******************
+
+				# 3. World coords to camera coords 
+				__, loc_pts_cam, __ = self.unit_vec_tform(loc_pts_wrd, self.origin_w, self.im_pts_2d[imnum]['w2c'])
+
+
+				# 4. 3d camera pts --> 2d camera points
+				z = loc_pts_cam[:,2]
+				pts_2d = np.stack((loc_pts_cam[:,0]*self.focal/z, loc_pts_cam[:,1]*self.focal/z), axis=1)
+				print("\n2D points unvalidated (looks close-ish)\n", pts_2d)
+
+
+
+
+				# 5. Round pixel locs - ENDING HERE 
+				pts_2d = np.round(pts_2d).astype(int)
+				print(pts_2d)
+				# Use stuff below if necessary
+
+
+				# print("Mags", mag_flat)
+				locs = loc_vec_cam * mag_flat[:, None]
+				# print("\nLOCS\n", locs)
+				px, py = locs[:,0], locs[:,1]
+				# # Pixel shifts
+				PY = -px
+				PX = -py
+				# Re-center
+				Px = PX + (self.images_dict[imnum].shape[1])/2
+				Py = -PY + (self.images_dict[imnum].shape[0])/2
+				pts_2d = np.stack((Px, Py), axis=1)
+				pts_2d = pts_2d.reshape(self.im_pts_2d[imnum]['mag'].shape[0], self.im_pts_2d[imnum]['mag'].shape[1], 2)
+				pts_2d = np.round(pts_2d).astype(int)
+				# print("\nHopefully the 2d points\n", pts_2d)
+				# print("\nShould match this\n", self.im_pts_2d[imnum]['pts'])
+
+				# Get intensities from the 2D camera coords
+				x, y = pts_2d[...,0], pts_2d[...,1]
+				rgbvals = self.images_dict[imnum][y,x]
+				# print("\nIntensities\n", rgbvals)
+				# Flatten to (N, 3)
+				rgb_flat = rgbvals.reshape(-1, 3)
+				# Apply intensity formula
+				intensity = (0.299 * rgbvals[:, 0] +
+					0.587 * rgbvals[:, 1] +
+					0.114 * rgbvals[:, 2]).reshape(-1, 1)
+
+				print("\nIntensities\n", intensity)
 
 				# # Build tree
 				# tree = cKDTree(shifted_loc_pts[:,:2])
