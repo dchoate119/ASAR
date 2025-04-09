@@ -764,104 +764,104 @@ class gNAV_agent:
 
 
 	
-	# def ssd_nxn_NEWL(self, n, imnum):
-	# 	"""
-	#   *** DID NOT WORK, KEEPING HERE FOR REFERENCE ***
-	# 	New SSD process to run faster
-	# 	New lookup process instead of using the trees*****
-	# 	Sum of squared differences. Shifts around pixels 
-	# 	Input: n shift amount, image number
-	# 	Output: sum of squared differences for each shift
-	# 	"""
-	# 	downs = 1 # Factor to downsample by 
-	# 	ssds = np.zeros((2*n+1,2*n+1))
-	# 	loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
-	# 	# print(loc_pts)
+	def ssd_nxn_NEWL(self, n, imnum):
+		"""
+	  *** DID NOT WORK, KEEPING HERE FOR REFERENCE ***
+		New SSD process to run faster
+		New lookup process instead of using the trees*****
+		Sum of squared differences. Shifts around pixels 
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
 
-	# 	for shiftx in range(-n,n+1):
-	# 		for shifty in range(-n, n+1):
-	# 			# Get points inside corners for satellite image 
-	# 			inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
-	# 			# print(inside_pts.shape)
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
 
-	# 			# Downsample pts (grab only x and y)
-	# 			downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
-	# 			downsampled_cg = inside_cg[::downs,0]
-	# 			print(downsampled_pts.shape)
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				print(downsampled_pts.shape)
 
-	# 			# Shift points 
-	# 			shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
-	# 			# print(shiftx,shifty)
-	# 			print(shifted_loc_pts.shape)
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				print(shifted_loc_pts.shape)
 
-	# 			# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
-	# 			# This is as a sanity check
-	# 			# For the real implementation, we are moving the satellite points (downsampled_pts) ...
-	# 			# ... through this process
-	# 			# print("Shifted local points\n", shifted_loc_pts)
+				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
+				# This is as a sanity check
+				# For the real implementation, we are moving the satellite points (downsampled_pts) ...
+				# ... through this process
+				# print("Shifted local points\n", shifted_loc_pts)
 
-	# 			# Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
-	# 			# print(self.best_guess_tform)
-	# 			best_guess_inv = np.linalg.inv(self.best_guess_tform)
-	# 			# print(best_guess_inv)
-	# 			__, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
-	# 			# __, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
-	# 			loc_pts_ref[:, :2] /= self.best_guess_scale
-	# 			# print("\nShould be the local points in ref frame\n", loc_pts_ref)
+				# Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
+				# print(self.best_guess_tform)
+				best_guess_inv = np.linalg.inv(self.best_guess_tform)
+				# print(best_guess_inv)
+				__, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
+				# __, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
+				loc_pts_ref[:, :2] /= self.best_guess_scale
+				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
 
-	# 			# Ref plane to world coords
-	# 			__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
-	# 			# print("\nShould be the local points in world cords\n", loc_pts_wrd)
+				# Ref plane to world coords
+				__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
+				# print("\nShould be the local points in world cords\n", loc_pts_wrd)
 
-	# 			# World coords to world unit vectors
-	# 			# print(self.im_pts_2d[imnum]['r'][:, np.newaxis])
-	# 			pts_vec_w = (loc_pts_wrd - self.im_pts_2d[imnum]['origin']) / self.im_pts_2d[imnum]['r'][:, np.newaxis]
-	# 			# print("\nShould be the local points in world unit vecs\n", pts_vec_w)
+				# World coords to world unit vectors
+				# print(self.im_pts_2d[imnum]['r'][:, np.newaxis])
+				pts_vec_w = (loc_pts_wrd - self.im_pts_2d[imnum]['origin']) / self.im_pts_2d[imnum]['r'][:, np.newaxis]
+				# print("\nShould be the local points in world unit vecs\n", pts_vec_w)
 
-	# 			# World unit vectors to camera unit vectors
-	# 			__, __, loc_vec_cam = self.unit_vec_tform(pts_vec_w, self.origin_w, self.im_pts_2d[imnum]['w2c'])
-	# 			# print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
+				# World unit vectors to camera unit vectors
+				__, __, loc_vec_cam = self.unit_vec_tform(pts_vec_w, self.origin_w, self.im_pts_2d[imnum]['w2c'])
+				# print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
 
-	# 			# Camera unit vectors --> 2D camera coords
-	# 			# Go to camera space 
-	# 			mag_flat = self.im_pts_2d[imnum]['mag'].reshape(-1)
-	# 			# print("Mags", mag_flat)
-	# 			locs = loc_vec_cam * mag_flat[:, None]
-	# 			# print("\nLOCS\n", locs)
-	# 			px, py = locs[:,0], locs[:,1]
-	# 			# # Pixel shifts
-	# 			PY = -px
-	# 			PX = -py
-	# 			# Re-center
-	# 			Px = PX + (self.images_dict[imnum].shape[1])/2
-	# 			Py = -PY + (self.images_dict[imnum].shape[0])/2
-	# 			pts_2d = np.stack((Px, Py), axis=1)
-	# 			pts_2d = pts_2d.reshape(self.im_pts_2d[imnum]['mag'].shape[0], self.im_pts_2d[imnum]['mag'].shape[1], 2)
-	# 			pts_2d = np.round(pts_2d).astype(int)
-	# 			# print("\nHopefully the 2d points\n", pts_2d)
-	# 			# print("\nShould match this\n", self.im_pts_2d[imnum]['pts'])
+				# Camera unit vectors --> 2D camera coords
+				# Go to camera space 
+				mag_flat = self.im_pts_2d[imnum]['mag'].reshape(-1)
+				# print("Mags", mag_flat)
+				locs = loc_vec_cam * mag_flat[:, None]
+				# print("\nLOCS\n", locs)
+				px, py = locs[:,0], locs[:,1]
+				# # Pixel shifts
+				PY = -px
+				PX = -py
+				# Re-center
+				Px = PX + (self.images_dict[imnum].shape[1])/2
+				Py = -PY + (self.images_dict[imnum].shape[0])/2
+				pts_2d = np.stack((Px, Py), axis=1)
+				pts_2d = pts_2d.reshape(self.im_pts_2d[imnum]['mag'].shape[0], self.im_pts_2d[imnum]['mag'].shape[1], 2)
+				pts_2d = np.round(pts_2d).astype(int)
+				# print("\nHopefully the 2d points\n", pts_2d)
+				# print("\nShould match this\n", self.im_pts_2d[imnum]['pts'])
 
-	# 			# Get intensities from the 2D camera coords
-	# 			x, y = pts_2d[...,0], pts_2d[...,1]
-	# 			# print(x,y)
-	# 			rgbvals = self.images_dict[imnum][y,x]
-	# 			rgbvals /= 255 # Normalize
+				# Get intensities from the 2D camera coords
+				x, y = pts_2d[...,0], pts_2d[...,1]
+				# print(x,y)
+				rgbvals = self.images_dict[imnum][y,x]
+				rgbvals /= 255 # Normalize
 				
-	# 			# Flatten to (N, 3)
-	# 			rgb_flat = rgbvals.reshape(-1, 3)
-	# 			# print("\nrgbvals\n", rgb_flat.shape)
-	# 			# Apply intensity formula
-	# 			intensity = (0.299 * rgb_flat[:, 0] +
-	# 				0.587 * rgb_flat[:, 1] +
-	# 				0.114 * rgb_flat[:, 2]).reshape(-1, 1)
+				# Flatten to (N, 3)
+				rgb_flat = rgbvals.reshape(-1, 3)
+				# print("\nrgbvals\n", rgb_flat.shape)
+				# Apply intensity formula
+				intensity = (0.299 * rgb_flat[:, 0] +
+					0.587 * rgb_flat[:, 1] +
+					0.114 * rgb_flat[:, 2]).reshape(-1, 1)
 
-	# 			print("\nIntensities\n", intensity)
+				print("\nIntensities\n", intensity)
 
-	# 			# # Build tree
-	# 			# tree = cKDTree(shifted_loc_pts[:,:2])
+				# # Build tree
+				# tree = cKDTree(shifted_loc_pts[:,:2])
 
-	# 			# # Find nearest points and calculate intensities
-	# 			# distances, indices = tree.query(downsampled_pts, k=1)
+				# # Find nearest points and calculate intensities
+				# distances, indices = tree.query(downsampled_pts, k=1)
 
 
 

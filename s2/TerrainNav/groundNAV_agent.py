@@ -28,6 +28,7 @@ class gNAV_agent:
 		self.sat_im_init()
 		self.im_pts_best_guess = {}
 		self.ssds_curr = {}
+		self.ssds1_curr = {}
 
 
 	def read_colmap_data(self):
@@ -558,6 +559,8 @@ class gNAV_agent:
 		Input: n shift amount, image number
 		Output: sum of squared differences for each shift
 		"""
+		self.check_pts = {} # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
+		self.check_pts_sat = {} # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT 
 		downs = 1 # Factor to downsample by 
 		ssds = np.zeros((2*n+1,2*n+1))
 		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
@@ -572,7 +575,8 @@ class gNAV_agent:
 				# Downsample pts (grab only x and y)
 				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
 				downsampled_cg = inside_cg[::downs,0]
-				print("Colors of downsampled pts\n", downsampled_cg)
+				self.check_pts_sat[shiftx, shifty] = downsampled_pts # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
+				# print("Colors of downsampled pts\n", downsampled_cg)
 				# print(downsampled_cg.shape)
 
 				# Shift points 
@@ -601,6 +605,7 @@ class gNAV_agent:
 
 
 				# 3. World coords to camera coords 
+				# print("\nImage specific transformation\n", self.im_pts_2d[imnum]['w2c'])
 				__, loc_pts_cam, __ = self.unit_vec_tform(loc_pts_wrd, self.origin_w, self.im_pts_2d[imnum]['w2c'])
 
 
@@ -617,23 +622,25 @@ class gNAV_agent:
 				# Re-center
 				Px = PX + (self.images_dict[imnum].shape[1])/2
 				Py = -PY + (self.images_dict[imnum].shape[0])/2
-				pts_2d = np.stack((Px, Py), axis=1) # SWAPPED (idk, just trying)
+				pts_2d = np.stack((Px, Py), axis=1) 
 				# pts_2d = np.reshape(self.im_pts_2d[imnum]['corners'][3],self.im_pts_2d[imnum]['corners'][2],2)
 
 				# 6. Round pixel locs - ENDING HERE 
 				# print("\nNon-rounded points\n", pts_2d)
 				pts_2d = np.round(pts_2d).astype(int)
 				# print("\nRounded points\n", pts_2d)
-				self.check_pts = pts_2d 
+				self.check_pts[shiftx, shifty] = pts_2d # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
 
 				# 7. Get intensities from the 2D camera coords
 				x, y = pts_2d[...,0], pts_2d[...,1]
-				print(x,y)
-				print(x[1965],y[1965])
+				# print(x,y)
+				# print(x[1965],y[1965])
 				# im = cv2.cvtColor(self.images_dict[imnum], cv2.COLOR_BGR2RGB)
-				rgbvals = self.images_dict[imnum][y,x].astype(np.float32)
+				rgbvals = self.images_dict[imnum][y,x]
+				rgbvals = rgbvals.astype(np.float32)
 				rgbvals /= 255 # Normalize
-				print("\nRgbvals\n", rgbvals)
+				print(rgbvals)
+				# print("\nRgbvals\n", rgbvals)
 				# Flatten to (N, 3)
 				# rgb_flat = rgbvals.reshape(-1, 3)
 				# print("\nRGBFLAT\n", rgb_flat)
@@ -647,17 +654,25 @@ class gNAV_agent:
 
 				# 8. Calculate SSDS
 				diffs = downsampled_cg - intensity 
-				print("\nDiffs\n", diffs)
+				# print("\nDiffs\n", diffs)
 				ssd_curr = np.sum(diffs**2)
 
 				# Store SSD value for the current shift
 				ssds[shiftx + n, shifty + n] = ssd_curr
-				print("SSD = ", ssd_curr)
+				# print("SSD = ", ssd_curr)
 
-		# print("Number of points used: ", diffs.shape)
+		print("Number of points used: ", diffs.shape)
 
 		return ssds
 
+
+
+# NOTES: LETS CHECK THE ORDER OF THE INTENSITIES 
+# They may be the right intensities, but in the wrong order
+# List the first 10, then plot them 
+# NO
+# START WITH A FULL BLUE SECTION 
+# See if the intensities are the same between the two methods (they should be)
 
 
 
