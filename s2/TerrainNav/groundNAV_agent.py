@@ -675,6 +675,9 @@ class gNAV_agent:
 # See if the intensities are the same between the two methods (they should be)
 
 
+# The issue is within the shift, trend is off, but SSD for zero shift seems close enough
+
+
 
 
 
