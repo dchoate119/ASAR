@@ -453,7 +453,7 @@ class gNAV_agent:
 		Output: Transformation matrix (4x4)
 		"""
 		# Rotation
-		roll_r, pitch_r, yaw_r = np.deg2rad([roll, pitch, yaw])
+		roll_r, pitch_r, yaw_r = np.array([roll, pitch, yaw])
 		euler_angles = [roll_r, pitch_r, yaw_r]
 		rotmat = R.from_euler('xyz', euler_angles).as_matrix()
 
