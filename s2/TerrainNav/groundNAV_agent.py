@@ -666,6 +666,16 @@ class gNAV_agent:
 		return ssds
 
 
+# FUNCTIONS FOR LSQUARES PROCESS 
+# 1. Generate deltaY term from SSDs (input: self, n) (output: yi)
+# 2. Form big jacobian J (input: self, parameters_best guess), (output: J)
+# 3. Least squares dalpha (input: self, J, yi) (output: dalpha, new params)
+# 4. Apply change to points (input: self, params) (output: "Done")
+
+
+
+
+
 
 # NOTES: LETS CHECK THE ORDER OF THE INTENSITIES 
 # They may be the right intensities, but in the wrong order
