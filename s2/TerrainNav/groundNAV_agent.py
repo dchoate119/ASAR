@@ -81,23 +81,38 @@ class gNAV_agent:
 		Input: reference image 
 		Output: 3xn array of points (z=1), and 3xn array of colors (grayscale)
 		"""
-		cols = self.sat_ref.shape[0]
-		rows = self.sat_ref.shape[1]
-		# print(cols,rows)
-		n = cols*rows 
-		ref_pts = np.zeros((n,3))
-		ref_rgb = np.zeros((n,3))
-		count = 0
-		for i in range(cols):
-			for j in range(rows):
-				ref_pts[count] = [j,i,1]
-				ref_rgb[count] = self.sat_ref[i][j]
-				count += 1
+		cols, rows = self.sat_ref.shape
+		x, y = np.meshgrid(np.arange(rows), np.arange(cols))
+		ref_pts = np.stack([x.ravel(), y.ravel(), np.ones_like(x).ravel()], axis=1)
 
+		gray_vals = self.sat_ref.ravel().astype(np.float32)
+		ref_rgb = np.stack([gray_vals]*3, axis=1)
 		ref_rgb /= 255
+
+		# ADDING A SHIFT TO FULL SAT IMAGE - comment out for old version
+		ref_pts -= np.array([700,600,0])
+
 		self.ref_pts = ref_pts
 		self.ref_rgb = ref_rgb
-		self.tree = cKDTree(ref_pts)
+
+
+		# cols = self.sat_ref.shape[0]
+		# rows = self.sat_ref.shape[1]
+		# # print(cols,rows)
+		# n = cols*rows 
+		# ref_pts = np.zeros((n,3))
+		# ref_rgb = np.zeros((n,3))
+		# count = 0
+		# for i in range(cols):
+		# 	for j in range(rows):
+		# 		ref_pts[count] = [j,i,1]
+		# 		ref_rgb[count] = self.sat_ref[i][j]
+		# 		count += 1
+
+		# ref_rgb /= 255
+		# self.ref_pts = ref_pts
+		# self.ref_rgb = ref_rgb
+		# self.tree = cKDTree(ref_pts)
 
 
 
@@ -160,8 +175,9 @@ class gNAV_agent:
 
 	def set_ref_frame(self, pts_gnd_idx):
 		"""
-		Defines a reference coordinate frame for the ****** 
-
+		Defines a reference coordinate frame for the matching process
+		Input: ground plane points 
+		Output: reference frame transformation matrix
 		"""
 		self.origin_w = np.array([0,0,0])
 		self.pts_gnd = self.scene_pts[pts_gnd_idx]
@@ -207,7 +223,7 @@ class gNAV_agent:
 		x = 0
 		y = 0
 		z = -1
-		yaw = np.deg2rad(220)
+		yaw = np.deg2rad(220) # CHANGED FROM 220
 		# Translation 2
 		trans2 = np.array([x, y, z]).reshape([3,1])
 		# Rotation 2
@@ -222,6 +238,71 @@ class gNAV_agent:
 
 		return tform_ref_frame
 
+
+	def set_ref_frame_mid(self, pts_gnd_idx):
+		"""
+		Defines a reference coordinate frame for the matching process
+		Input: ground plane points 
+		Output: reference frame transformation matrix
+		"""
+		self.origin_w = np.array([0,0,0])
+		self.pts_gnd = self.scene_pts[pts_gnd_idx]
+
+		# Find gravity and height
+		self.grav_vec = self.grav_SVD(self.pts_gnd)
+		# print('Gravity vector \n', self.grav_vec)
+		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
+		# print('\nHeight h_0 = ', self.h_0)
+
+		# Get focal length 
+		cam_id = list(self.cameras_c.keys())[0]
+		self.focal = self.cameras_c[cam_id].params[0]
+		# print("Focal length \n", self.focal)
+
+
+		# Define coordinate frame 
+		z_bar = self.grav_vec
+		P1, P2 = self.scene_pts[pts_gnd_idx[0],:], self.scene_pts[pts_gnd_idx[5],:]
+		v = P2-P1
+
+		# X Direction as ZcrossV
+		x_dir = np.cross(z_bar, v)
+		x_bar = x_dir/np.linalg.norm(x_dir)
+		# print("\nX unit vector \n", x_bar)
+		# Y Direction as ZcrossX
+		y_dir = np.cross(z_bar, x_bar)
+		y_bar = y_dir/np.linalg.norm(y_dir)
+		# print("\nY unit vector \n", y_bar)
+
+		# Rotation matrix 
+		rotmat = np.column_stack((x_bar, y_bar, z_bar))
+		# print("\nRotation Matrix\n", rotmat)
+		# Translation Vector
+		trans = P1.reshape([3,1])
+
+		# Form transformation matrix 
+		bottom = np.array([0.0, 0.0, 0.0, 1.0]).reshape([1,4])
+		tform = np.concatenate([np.concatenate([rotmat, trans],1),bottom],0)
+		# print("\nTransformation matrix to ground \n", tform)
+
+		# Translation from ground to desired height 
+		x = 0
+		y = -6
+		z = -1
+		yaw = np.deg2rad(0)
+		# Translation 2
+		trans2 = np.array([x, y, z]).reshape([3,1])
+		# Rotation 2
+		euler_angles = [0., 0., yaw]
+		rotmat2 = R.from_euler('xyz', euler_angles).as_matrix()
+		tform2 = np.concatenate([np.concatenate([rotmat2, trans2],1),bottom],0)
+		# print("\nTransformation from ground to desired coord frame (added a 220 deg yaw)\n", tform2)
+
+		# Combine 
+		tform_ref_frame = tform @ tform2
+		self.tform_ref_frame = tform_ref_frame
+
+		return tform_ref_frame
 
 	def inv_homog_transform(self, homog):
 		""" Inverting a homogeneous transformation matrix
