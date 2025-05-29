@@ -1,0 +1,126 @@
+SINGLE SCALE FACTOR 65
+
+
+Need to extend search of image 0
+
+Current shift vector = (-2, 10)
+
+Number of points used for image 0:  (662,)
+
+New shift vector = (21, -1)
+
+
+
+Need to extend search of image 2
+
+Current shift vector = (-10, 10)
+
+Number of points used for image 2:  (1866,)
+
+New shift vector = (-15, 25)
+
+
+
+Need to extend search of image 4
+
+Current shift vector = (-10, 10)
+
+Number of points used for image 4:  (3138,)
+
+New shift vector = (-21, -25)
+
+
+ 
+Need to extend search of image 5
+
+Current shift vector = (9, 10)
+
+Number of points used for image 5:  (1247,)
+
+New shift vector = (15, 22)
+
+
+
+Need to extend search of image 6
+
+Current shift vector = (10, 4)
+
+Number of points used for image 6:  (2745,)
+
+New shift vector = (20, 25)
+
+
+
+Need to extend search of image 7
+
+Current shift vector = (-10, -10)
+
+Number of points used for image 7:  (7198,)
+
+New shift vector = (-25, -25)
+
+
+
+Need to extend search of image 8
+
+Current shift vector = (4, -10)
+
+Number of points used for image 8:  (1502,)
+
+New shift vector = (3, -20)
+
+
+
+Need to extend search of image 9
+
+Current shift vector = (-10, -10)
+
+Number of points used for image 9:  (2413,)
+
+New shift vector = (-12, -11)
+
+
+
+
+
+
+DUAL SCALE FACTOR (65 in the x, 70 in the y)
+
+
+Need to extend search of image 0
+
+Current shift vector = (1, 10)
+
+Number of points used for image 0:  (714,)
+
+New shift vector = (25, 1)
+
+
+
+Need to extend search of image 2
+
+Current shift vector = (-10, 10)
+
+Number of points used for image 2:  (2006,)
+
+New shift vector = (-15, 17)
+
+
+
+Need to extend search of image 4
+
+Current shift vector = (-10, 10)
+
+Number of points used for image 4:  (3379,)
+
+New shift vector = (-11, 11)
+
+
+
+Need to extend search of image 5
+
+Current shift vector = (6, 10)
+
+Number of points used for image 5:  (1362,)
+
+New shift vector = (7, 13)
