@@ -1,3 +1,44 @@
+SINGLE SCALE FACTOR 70 
+Does it make sense?
+Image #
+0. YES
+1. Somewhat: wrong y - scaling issue 
+2. YES
+3. Somewhat: wrong y - scaling issue 
+4. YES
+5. NO: wrong Y - Review - should be Neg Y (5,14) - FOLDER B5
+6. NO: wrong Y - Review - should be Pos Y (-13,-9)
+7. YES
+8. NO: wrong Y - Review - should be Pos Y (14, -13)
+9. YES
+
+
+SINGLE SCALE FACTOR 80 (original)
+0. YES
+1. YES
+2. YES
+3. YES
+4. YES
+5. YES (could be more, but trend is correct)
+6. YES
+7. YES - A7
+8. NO: REVIEW - should be Pos x, Pos Y (-16, -25)-wrong yardage - window size issue
+9. YES
+
+
+DUAL SCALE FACTOR 75, 80
+0. YES
+1. YES
+2. YES
+3. YES
+4. YES
+5. NO (X should be negative) - window size issue (16,-10)
+6. NO (X should be positive) - window size issue (-22,25)
+7. YES
+8. YES (could be more, but trend is correct), window size 
+9. NO (Y should be positive) - scale and window size issue (-15, -15)
+
+
 SINGLE SCALE FACTOR 65
 
 
