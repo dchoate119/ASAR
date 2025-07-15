@@ -1,0 +1,17 @@
+﻿NOTES:
+- Date: 04/18/2025
+- Recorded in 2 GB increments. At the beginning of every bag file, after the initial, there is about a 5 second delay in recording new data. 
+   - The fused bags and video files reflect this by jumps and pauses where the transitions between bags happen.
+- Contains two video feeds (mako and leopard), VLP32 LiDAR point clouds, and localization (GNSS,INS,fused).
+
+Bag 1: OURAIRPORT_04182025_RECORD1_RIGHT_OUT_OF_HANGAR.bag
+Right out of hangar
+
+Bag 2: OURAIRPORT_04182025_RECORD2_R_RETURN_TO_HANGAR.bag
+Return to hangar, reverse of Bag 1
+
+Bag 3: OURAIRPORT_04182025_RECORD3_LEFT_OUT_OF_HANGAR.bag
+Left out of hangar to A5, Runway 7, then A3
+
+Bag 4: OURAIRPORT_04182025_RECORD4_L_RETURN_TO_HANGAR.bag
+Return to hangar from A3. Reverse of Bag 3
