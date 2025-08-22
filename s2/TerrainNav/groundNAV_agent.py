@@ -20,7 +20,7 @@ class gNAV_agent:
 		self.images_c_loc = images_colm		# Location of images file
 		self.cameras_c_loc = cameras_colm	# Location of cameras file
 		self.pts3d_c_loc = pts3d_colm 		# Location of ptd3d file
-		self.images = images 				# Location of specific image files 
+		self.imss = images 					# Location of specific image files 
 		self.sat_ref = cv2.imread(sat_ref) 	# Satellite reference image
 		self.sat_ref = cv2.cvtColor(self.sat_ref, cv2.COLOR_BGR2GRAY)
 		self.read_colmap_data()
@@ -47,6 +47,21 @@ class gNAV_agent:
 		self.images_dict = {}
 		self.im_pts_2d = {}
 		self.im_mosaic = {}
+		# Specify image ordering 
+		self.im1 = xx
+		self.im2 = xx
+		self.im3 = xx
+		self.im4 = xx
+		self.im5 = xx
+		self.im6 = xx
+		self.im7 = xx
+		self.im8 = xx
+		self.im9 = xx
+		self.im10 = xx
+
+		self.images = [self.im1, self.im2, self.im3, self.im4, self.im5,
+		self.im6, self.im7, self.im8, self.im9, self.im10]
+
 		im_ids = np.zeros((len(self.images)), dtype=int)
 		# print(self.images_c.items())
 
