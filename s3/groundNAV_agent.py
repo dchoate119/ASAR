@@ -185,7 +185,8 @@ class gNAV_agent:
 		self.pts_gnd = self.scene_pts[pts_gnd_idx]
 
 		# Find gravity and height
-		self.grav_vec = self.grav_SVD(self.pts_gnd)
+		# NOTE: CHANGING GRAVITY TO NEGATIVE****
+		self.grav_vec = -self.grav_SVD(self.pts_gnd)
 		# print('Gravity vector \n', self.grav_vec)
 		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
 		# print('\nHeight h_0 = ', self.h_0)
@@ -251,15 +252,16 @@ class gNAV_agent:
 		self.pts_gnd = self.scene_pts[pts_gnd_idx]
 
 		# Find gravity and height
-		self.grav_vec = self.grav_SVD(self.pts_gnd)
-		# print('Gravity vector \n', self.grav_vec)
+		# NOTE: CHANGING GRAVITY TO NEGATIVE****
+		self.grav_vec = -self.grav_SVD(self.pts_gnd)
+		print('Gravity vector \n', self.grav_vec)
 		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
-		# print('\nHeight h_0 = ', self.h_0)
+		print('\nHeight h_0 = ', self.h_0)
 
 		# Get focal length 
 		cam_id = list(self.cameras_c.keys())[0]
 		self.focal = self.cameras_c[cam_id].params[0]
-		# print("Focal length \n", self.focal)
+		print("Focal length \n", self.focal)
 
 
 		# Define coordinate frame 
@@ -289,9 +291,9 @@ class gNAV_agent:
 
 		# Translation from ground to desired height 
 		x = 0
-		y = -6
-		z = -1
-		yaw = np.deg2rad(0)
+		y = -0.5 #-6 Had -6 for turf dataset adjustment
+		z = 0 # -1 Had -1 originally 
+		yaw = np.deg2rad(120) # ADJUSTING FROM ZERO 
 		# Translation 2
 		trans2 = np.array([x, y, z]).reshape([3,1])
 		# Rotation 2
@@ -438,8 +440,10 @@ class gNAV_agent:
 		Px = pts_loc[..., 0] - shape_im_x / 2  # Shape (H, W)
 		Py = -pts_loc[..., 1] + shape_im_y / 2  # Shape (H, W)
 
-		# Apply final coordinate transformations
-		Px, Py = -Py, -Px  # Swap and negate as per coordinate system
+		# Apply final coordinate transformations - THIS MIGHT NOT BE NECESSARY 
+		# Px, Py = -Py, -Px  # Swap and negate as per coordinate system
+		# Px, Py = Py, Px # DONT SWAP
+		Px, Py = -Px, Py
 
 		# Compute magnitude of vectors
 		mag = np.sqrt(Px**2 + Py**2 + self.focal**2)  # Shape (H, W)
