@@ -1,0 +1,20 @@
+docker run -it --rm \
+  --env="DISPLAY" \
+  --env="QT_X11_NO_MITSHM=1" \
+  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+  ubuntu:20.04 /bin/bash
+
+
+# Run -it: Interactive, Terminal 
+# --rm: remove container when finished
+# Display: passes system's display environment variable onto container - tells graphical programs where to render
+# Env QT ... : Fix for some QT, openGL apps that dont like docker's shared memory - Prevents crash when running pangolin
+# Volume ... : mounts host x11 socket into the container, GUI windows can show up on host screen
+
+
+
+# DOCKER FILE: has dso and pangolin dependencies
+# Exists as a docker IMAGE 
+# Not the same as a container, which can be removed each time I exit
+
+docker run -it --rm dso:20.04 bash

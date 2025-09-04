@@ -1,0 +1,50 @@
+# DOCKER FILE to build and include DSO and Pangolin dependencies
+# Start with Ubuntu 20.04 base image
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential cmake git wget unzip pkg-config \
+    libopencv-dev libeigen3-dev libboost-all-dev \
+    libsuitesparse-dev zlib1g-dev libglew-dev \
+    freeglut3-dev libatlas-base-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Pangolin (visualization library)
+WORKDIR /opt
+RUN git clone https://github.com/stevenlovegrove/Pangolin.git && \
+    cd Pangolin && \
+    git checkout v0.5 && \
+    mkdir build && cd build && \
+    cmake -DBUILD_PANGOLIN_VIDEO=OFF -DBUILD_FFMPEG=OFF -DBUILD_PANGOLIN_PYTHON=OFF -DBUILD_EXAMPLES=OFF .. && \
+make -j$(nproc) && make install
+
+# Clone DSO and initialize submodules
+WORKDIR /opt
+RUN git clone https://github.com/JakobEngel/dso.git && \
+    cd dso && \
+    git submodule update --init
+
+# Build ziplib
+WORKDIR /opt/dso/thirdparty
+RUN tar -zxvf libzip-1.1.1.tar.gz && \
+    cd libzip-1.1.1 && \
+    ./configure && make -j$(nproc) && make install && \
+    cp lib/zipconf.h /usr/local/include/zipconf.h
+
+# Build DSO
+WORKDIR /opt/dso
+# Patch OpenCV load flags for OpenCV 4 compatibility
+RUN sed -i 's/CV_LOAD_IMAGE_GRAYSCALE/cv::IMREAD_GRAYSCALE/g' /opt/dso/src/IOWrapper/OpenCV/ImageRW_OpenCV.cpp && \
+    sed -i 's/CV_LOAD_IMAGE_COLOR/cv::IMREAD_COLOR/g' /opt/dso/src/IOWrapper/OpenCV/ImageRW_OpenCV.cpp && \
+    sed -i 's/CV_LOAD_IMAGE_UNCHANGED/cv::IMREAD_UNCHANGED/g' /opt/dso/src/IOWrapper/OpenCV/ImageRW_OpenCV.cpp
+
+# Now build DSO
+RUN mkdir build && cd build && \
+    cmake .. -DCMAKE_CXX_FLAGS="-pthread" -DCMAKE_EXE_LINKER_FLAGS="-pthread" && \
+    make -j$(nproc)
+
+# Default working dir
+WORKDIR /opt/dso
+CMD ["/bin/bash"]
