@@ -17,4 +17,50 @@ docker run -it --rm \
 # Exists as a docker IMAGE 
 # Not the same as a container, which can be removed each time I exit
 
-docker run -it --rm dso:20.04 bash
+
+# TO INCLUDE DATASET FOLDER
+
+docker run -it --rm \
+    -v /home/daniel-choate/Datasets/MonoVO:/datasets \
+    dso:20.04 bash
+
+
+#************ DOCKER FILE NOTES
+Base system - starts from Ubuntu 20.04
+- Disable active prompts: speed up docker build
+
+Install dependencies: CMake, Git, OpenCV, Eigen, Boost
+- Suitesparse, Atlas, OpenGL libs
+- Cleans up apt cache to keep the image smaller (removes files after apt-get install) - saves storage in final docker image
+
+Install Pangolin: repo at v0.5
+- builds with video, ffmpeg python, example support DISABLE (avoiding extra dependencies)
+
+Clone DSO: Jakob Engel
+- Initialize any submodules
+
+Build ziplib - DSO dependency 
+
+Patch DSO for opencv4
+- replaces old CV_LOAD_IMAGE_* flags with new flags to make it compile with modern opencv
+
+Build DSO 
+- creates a build directory
+- compiles DSO with pthread flags - for complier and linker
+
+Default environment
+- working directory set to /opt/dso
+- container opens into a bash shell by default
+
+
+******************* 
+RUNNING DSO 
+
+Change sequence 49 to specific file
+
+bin/dso_dataset \
+    files=/datasets/sequence_49/images.zip \
+    calib=/datasets/sequence_49/camera.txt \
+    gamma=/datasets/sequence_49/pcalib.txt \
+    vignette=/datasets/sequence_49/vignette.png \
+    preset=0 mode=0
