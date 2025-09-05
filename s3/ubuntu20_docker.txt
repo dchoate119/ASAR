@@ -24,6 +24,15 @@ docker run -it --rm \
     -v /home/daniel-choate/Datasets/MonoVO:/datasets \
     dso:20.04 bash
 
+# WITH GPU ACCESS
+
+docker run -it --rm \
+    --gpus all \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /home/daniel-choate/Datasets/MonoVO:/datasets \
+    dso:20.04 bash
+
 
 #************ DOCKER FILE NOTES
 Base system - starts from Ubuntu 20.04
@@ -64,3 +73,6 @@ bin/dso_dataset \
     gamma=/datasets/sequence_49/pcalib.txt \
     vignette=/datasets/sequence_49/vignette.png \
     preset=0 mode=0
+
+
+
