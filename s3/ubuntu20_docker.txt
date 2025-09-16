@@ -34,6 +34,15 @@ docker run -it --rm \
     dso:20.04 bash
 
 
+docker run -it --rm \
+    --gpus all \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /home/daniel-choate/Datasets/VTTI_airfield/MSNV_0000_0000_0_250804_1830_00156/DSO_Test:/datasets \
+    dso:20.04 bash
+
+
+
 #************ DOCKER FILE NOTES
 Base system - starts from Ubuntu 20.04
 - Disable active prompts: speed up docker build
@@ -75,4 +84,16 @@ bin/dso_dataset \
     preset=0 mode=0
 
 
+bin/dso_dataset \
+    files=/datasets/Images_PP \
+    calib=/datasets/camera.txt \
+    gamma=/datasets/pcalib.txt \
+    vignette=/datasets/vignette.png \
+    preset=0 mode=0
 
+bin/dso_dataset \
+    files=/datasets/Images_PP_NEW \
+    calib=/datasets/camera_NEW.txt \
+    gamma=/datasets/pcalib.txt \
+    vignette=/datasets/vignetteT.png \
+    preset=0 mode=0

@@ -1,0 +1,21 @@
+camera_name: 'forward'
+camera_barcode: ''
+image_width: 2448
+image_height: 1376
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [1614.82951, 0.0, 1235.00441, 0.0, 1619.97672, 696.002777, 0.0, 0.0, 1.0]
+distortion_model: rational_polynomial
+distortion_coefficients:
+  rows: 1
+  cols: 8
+  data: [49.0967308, 84.2090797, 5.78514307e-05, -0.000167231838, 25.2012578, 49.3039768, 95.7972418, 38.9384233]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [1614.82951, 0.0, 1235.00441, 0.0, 0.0, 1619.97672, 696.002777, 0.0, 0.0, 0.0, 1.0, 0.0]
