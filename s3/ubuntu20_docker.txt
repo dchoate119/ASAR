@@ -97,3 +97,12 @@ bin/dso_dataset \
     gamma=/datasets/pcalib.txt \
     vignette=/datasets/vignetteT.png \
     preset=0 mode=0
+
+
+bin/dso_dataset \
+    files=/datasets/60_fps/Images_PP \
+    calib=/datasets/camera_test.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette_constant.png \
+    preset=0 mode=0
+
