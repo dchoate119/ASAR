@@ -103,6 +103,28 @@ bin/dso_dataset \
     files=/datasets/60_fps/Images_PP \
     calib=/datasets/camera_test.txt \
     gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette.png \
+    preset=0 mode=0
+
+
+bin/dso_dataset \
+    files=/datasets/60_fps_nondist/Images_gray \
+    calib=/datasets/camera_radtan.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette.png \
+    preset=0 mode=0
+
+
+bin/dso_dataset \
+    files=/datasets/60_fps_nondist/Images_TSR_Gray \
+    calib=/datasets/camera_radtan.txt \
+    gamma=/datasets/pcalib_mvo.txt \
     vignette=/datasets/vignette_constant.png \
     preset=0 mode=0
 
+
+bin/dso_dataset \
+    files=/datasets/60_fps_nondist/Images_TSR_Gray \
+    calib=/datasets/camera_radtan.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    preset=0 mode=0
