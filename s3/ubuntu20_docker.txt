@@ -108,7 +108,7 @@ bin/dso_dataset \
 
 
 bin/dso_dataset \
-    files=/datasets/60_fps_nondist/Images_gray \
+    files=/datasets/60_fps_unchanged/Images_gray \
     calib=/datasets/camera_radtan.txt \
     gamma=/datasets/pcalib_mvo.txt \
     vignette=/datasets/vignette.png \
@@ -116,7 +116,7 @@ bin/dso_dataset \
 
 
 bin/dso_dataset \
-    files=/datasets/60_fps_nondist/Images_TSR_Gray \
+    files=/datasets/60_fps_unchanged/Images_TSR_Gray \
     calib=/datasets/camera_radtan.txt \
     gamma=/datasets/pcalib_mvo.txt \
     vignette=/datasets/vignette_constant.png \
@@ -127,4 +127,48 @@ bin/dso_dataset \
     files=/datasets/60_fps_nondist/Images_TSR_Gray \
     calib=/datasets/camera_radtan.txt \
     gamma=/datasets/pcalib_mvo.txt \
+    preset=0 mode=0
+
+
+# NOTE: SHUFFLING FILES AROUND FOR BETTER ORGANIZATION 
+# 'undist' means undistorted
+# 'unchanged' means the original images (but grayscale)
+# Here, I am using my own undistorted images
+# With the pinhole model
+
+bin/dso_dataset \
+    files=/datasets/60_fps_undist/Images_TSR_Gray_UND \
+    calib=/datasets/camera_NEW.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette_constant.png \
+    preset=0 mode=0
+
+
+bin/dso_dataset \
+    files=/datasets/60_fps_undist/Images_PP \
+    calib=/datasets/camera_test.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette.png \
+    preset=0 mode=0
+
+
+bin/dso_dataset \
+    files=/datasets/60_fps_undist/Images_TSR_Gray_UND \
+    calib=/datasets/camera_test_half.txt \
+    gamma=/datasets/pcalib_mvo.txt \
+    vignette=/datasets/vignette_constant.png \
+    preset=0 mode=0
+
+bin/dso_dataset \
+    files=/datasets/60_fps_undist/Images_TSR_Gray_UND \
+    calib=/datasets/camera_NEW.txt \
+    gamma=/datasets/pcalib_0.85.txt \
+    vignette=/datasets/vignette.png \
+    preset=0 mode=0
+
+bin/dso_dataset \
+    files=/datasets/60_fps_undist/Images_TSR_Gray_UND \
+    calib=/datasets/camera_test_half.txt \
+    gamma=/datasets/pcalib_0.85.txt \
+    vignette=/datasets/vignette.png \
     preset=0 mode=0
