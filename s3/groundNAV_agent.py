@@ -7,12 +7,15 @@ import plotly.io as pio
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial import cKDTree
 from matplotlib.path import Path
+import os 
+from mpl_toolkits.mplot3d import Axes3D
+
 
 from colmapParsingUtils import *
 
 class gNAV_agent:
 	"""
-	An agent which enhances ground navigation of aerial vehicles
+	Project for enhancing autonomous ground navigation of aerial vehicles
 	Initialization of agent 
 	Inputs: Reference image (satellite), SfM solution (COLMAP), selected images
 	"""
@@ -20,22 +23,25 @@ class gNAV_agent:
 		self.images_c_loc = images_colm		# Location of images file
 		self.cameras_c_loc = cameras_colm	# Location of cameras file
 		self.pts3d_c_loc = pts3d_colm 		# Location of ptd3d file
-		self.images = images 					# Location of specific image files 
+		self.imss = images 					# Location of specific image folder 
 		self.sat_ref = cv2.imread(sat_ref) 	# Satellite reference image
 		self.sat_ref = cv2.cvtColor(self.sat_ref, cv2.COLOR_BGR2GRAY)
 		self.read_colmap_data()
 		self.image_parsing()
 		self.sat_im_init()
+		# Initial scene points and RGB data
+		self.grab_pts(self.pts3d_c)
+		# Initialize best guess and SSDs
 		self.im_pts_best_guess = {}
 		self.ssds_curr = {}
-		self.ssds1_curr = {}
-
+		# self.ssds1_curr = {}
+		# Ground plane points - chosen MANUALLY
+		self.pts_gnd_idx = np.array([25440, 25450, 25441, 25449, 25442, 25445, 103922, 103921, 103919, 103920])
 
 	def read_colmap_data(self):
 		self.images_c = read_images_text(self.images_c_loc)
 		self.cameras_c = read_cameras_text(self.cameras_c_loc)
 		self.pts3d_c = read_points3D_text(self.pts3d_c_loc)
-
 
 	def image_parsing(self):
 		""" 
@@ -47,7 +53,21 @@ class gNAV_agent:
 		self.images_dict = {}
 		self.im_pts_2d = {}
 		self.im_mosaic = {}
+
 		# Specify image ordering 
+		self.im1 = self.imss + '/IMG_9475.JPEG'
+		self.im2 = self.imss + '/IMG_9464.JPEG'
+		self.im3 = self.imss + '/IMG_9467.JPEG'
+		self.im4 = self.imss + '/IMG_9473.JPEG'
+		self.im5 = self.imss + '/IMG_9476.JPEG'
+		self.im6 = self.imss + '/IMG_9446.JPEG'
+		self.im7 = self.imss + '/IMG_9520.JPEG'
+		self.im8 = self.imss + '/IMG_9531.JPEG'
+		self.im9 = self.imss + '/IMG_9542.JPEG'
+		self.im10 = self.imss + '/IMG_9576.JPEG'
+
+		self.images = [self.im1, self.im2, self.im3, self.im4, self.im5,
+		self.im6, self.im7, self.im8, self.im9, self.im10]
 
 		im_ids = np.zeros((len(self.images)), dtype=int)
 		# print(self.images_c.items())
@@ -73,8 +93,12 @@ class gNAV_agent:
 		Inputs: filename, picture ID number
 		Output: variable created according to image number
 		"""
-		image = cv2.imread(image_path)
-		self.images_dict[i] = image
+		# image = cv2.imread(image_path)
+		# self.images_dict[i] = image
+		if os.path.exists(image_path):
+			image = cv2.imread(image_path)
+			if image is not None:
+				self.images_dict[i] = image
 
 	def sat_im_init(self):
 		"""
@@ -97,27 +121,6 @@ class gNAV_agent:
 		self.ref_pts = ref_pts
 		self.ref_rgb = ref_rgb
 
-
-		# cols = self.sat_ref.shape[0]
-		# rows = self.sat_ref.shape[1]
-		# # print(cols,rows)
-		# n = cols*rows 
-		# ref_pts = np.zeros((n,3))
-		# ref_rgb = np.zeros((n,3))
-		# count = 0
-		# for i in range(cols):
-		# 	for j in range(rows):
-		# 		ref_pts[count] = [j,i,1]
-		# 		ref_rgb[count] = self.sat_ref[i][j]
-		# 		count += 1
-
-		# ref_rgb /= 255
-		# self.ref_pts = ref_pts
-		# self.ref_rgb = ref_rgb
-		# self.tree = cKDTree(ref_pts)
-
-
-
 	def grab_pts(self, pts3d):
 		"""
 		Grabbing raw point cloud and RGB data from scene data
@@ -133,9 +136,65 @@ class gNAV_agent:
 		rgb_data = rgb_data/255 
 
 		self.scene_pts = scene_pts
-		self.rgb_data = rgb_data
+		self.scene_rgb = rgb_data
 
-		return scene_pts, rgb_data
+	def pose_scene_visualization(self, vis):
+		"""
+		Creating a visualization of pose estimations and sparse point cloud
+		Input: vis (open3d)
+		Output: vis (with pose estimations and point cloud)
+		"""
+		# Add origin axes
+		axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+		vis.add_geometry(axes)
+
+		# Add each pose estimate frame
+		self.grab_poses(self.images_c)
+		for p in self.poses:
+			axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1).transform(p)
+			vis.add_geometry(axes)
+
+		# Add sparse point cloud
+		scene_cloud = o3d.geometry.PointCloud()
+		scene_cloud.points = o3d.utility.Vector3dVector(self.scene_pts)
+		scene_cloud.colors = o3d.utility.Vector3dVector(self.scene_rgb)
+		vis.add_geometry(scene_cloud)
+
+		# Size options (jupyter gives issues when running this multiple times, but it looks better)
+		render_option = vis.get_render_option()
+		render_option.point_size = 2
+
+		# Run and destroy visualization 
+		vis.run()
+		vis.destroy_window()
+
+	def grab_poses(self, images_c):
+		"""
+		Grabs initial image poses for visualizations
+		Input: Image data
+		Output: Poses
+		"""
+		poses = []
+		# Loop through each image
+		for i in images_c:
+			# Get quaternion and translation vector
+			qvec = images_c[i].qvec
+			tvec = images_c[i].tvec[:,None]
+			# print(tvec)
+			t = tvec.reshape([3,])
+			# Create rotation matrix
+			Rotmat = qvec2rotmat(qvec) # Positive or negative does not matter
+			# print("\n Rotation matrix \n", Rotmat)
+			# Create 4x4 transformation matrix with rotation and translation
+			tform_mat = np.eye(4)
+			tform_mat[:3, :3] = Rotmat
+			tform_mat[:3, 3] = t
+			w2c = tform_mat
+			c2w = np.linalg.inv(w2c)
+			poses.append(c2w)
+		poses = np.stack(poses)
+		self.poses = poses
+
 
 	def grav_SVD(self, pts_gnd):
 		"""
@@ -174,7 +233,6 @@ class gNAV_agent:
 
 		return h_0
 
-
 	def set_ref_frame(self, pts_gnd_idx):
 		"""
 		Defines a reference coordinate frame for the matching process
@@ -182,11 +240,10 @@ class gNAV_agent:
 		Output: reference frame transformation matrix
 		"""
 		self.origin_w = np.array([0,0,0])
-		self.pts_gnd = self.scene_pts[pts_gnd_idx]
+		self.pts_gnd = self.scene_pts[self.pts_gnd_idx]
 
 		# Find gravity and height
-		# NOTE: CHANGING GRAVITY TO NEGATIVE****
-		self.grav_vec = -self.grav_SVD(self.pts_gnd)
+		self.grav_vec = self.grav_SVD(self.pts_gnd)
 		# print('Gravity vector \n', self.grav_vec)
 		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
 		# print('\nHeight h_0 = ', self.h_0)
@@ -224,9 +281,9 @@ class gNAV_agent:
 
 		# Translation from ground to desired height 
 		x = 0
-		y = 0
+		y = -6
 		z = -1
-		yaw = np.deg2rad(220) # CHANGED FROM 220
+		yaw = np.deg2rad(0)
 		# Translation 2
 		trans2 = np.array([x, y, z]).reshape([3,1])
 		# Rotation 2
@@ -241,75 +298,10 @@ class gNAV_agent:
 
 		return tform_ref_frame
 
-
-	def set_ref_frame_mid(self, pts_gnd_idx):
-		"""
-		Defines a reference coordinate frame for the matching process
-		Input: ground plane points 
-		Output: reference frame transformation matrix
-		"""
-		self.origin_w = np.array([0,0,0])
-		self.pts_gnd = self.scene_pts[pts_gnd_idx]
-
-		# Find gravity and height
-		# NOTE: CHANGING GRAVITY TO NEGATIVE****
-		self.grav_vec = -self.grav_SVD(self.pts_gnd)
-		print('Gravity vector \n', self.grav_vec)
-		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
-		print('\nHeight h_0 = ', self.h_0)
-
-		# Get focal length 
-		cam_id = list(self.cameras_c.keys())[0]
-		self.focal = self.cameras_c[cam_id].params[0]
-		print("Focal length \n", self.focal)
-
-
-		# Define coordinate frame 
-		z_bar = self.grav_vec
-		P1, P2 = self.scene_pts[pts_gnd_idx[0],:], self.scene_pts[pts_gnd_idx[5],:]
-		v = P2-P1
-
-		# X Direction as ZcrossV
-		x_dir = np.cross(z_bar, v)
-		x_bar = x_dir/np.linalg.norm(x_dir)
-		# print("\nX unit vector \n", x_bar)
-		# Y Direction as ZcrossX
-		y_dir = np.cross(z_bar, x_bar)
-		y_bar = y_dir/np.linalg.norm(y_dir)
-		# print("\nY unit vector \n", y_bar)
-
-		# Rotation matrix 
-		rotmat = np.column_stack((x_bar, y_bar, z_bar))
-		# print("\nRotation Matrix\n", rotmat)
-		# Translation Vector
-		trans = P1.reshape([3,1])
-
-		# Form transformation matrix 
-		bottom = np.array([0.0, 0.0, 0.0, 1.0]).reshape([1,4])
-		tform = np.concatenate([np.concatenate([rotmat, trans],1),bottom],0)
-		# print("\nTransformation matrix to ground \n", tform)
-
-		# Translation from ground to desired height 
-		x = 0
-		y = -0.5 #-6 Had -6 for turf dataset adjustment
-		z = 0 # -1 Had -1 originally 
-		yaw = np.deg2rad(120) # ADJUSTING FROM ZERO 
-		# Translation 2
-		trans2 = np.array([x, y, z]).reshape([3,1])
-		# Rotation 2
-		euler_angles = [0., 0., yaw]
-		rotmat2 = R.from_euler('xyz', euler_angles).as_matrix()
-		tform2 = np.concatenate([np.concatenate([rotmat2, trans2],1),bottom],0)
-		# print("\nTransformation from ground to desired coord frame (added a 220 deg yaw)\n", tform2)
-
-		# Combine 
-		tform_ref_frame = tform @ tform2
-		self.tform_ref_frame = tform_ref_frame
-
-		return tform_ref_frame
 
 	def inv_homog_transform(self, homog):
-		""" Inverting a homogeneous transformation matrix
+		""" 
+		Inverting a homogeneous transformation matrix
 		Inputs: homogeneous transformation matrix (4x4)
 		Outputs: inverted 4x4 matrix
 		"""
@@ -331,11 +323,9 @@ class gNAV_agent:
 
 		return homog_inv
 
-
 	def unit_vec_tform(self, pts_vec, origin, homog_t):
 		"""
 		Takes a set of unit vectors and transforms them according to a homogeneous transform
-		**** TRYING TO SPEED UP WITH NEW VERSION ****
 		Input: Unit vectors, transform 
 		Output: Origin of new unit vectors, end points of new unit vectors, new unit vectors
 		"""
@@ -354,17 +344,30 @@ class gNAV_agent:
 
 		return origin_n, pts_trans, pts_vec_n
 
-	def proj_2d_scene(self, pts):
-		"""
-		Take a 3d scene and returns a projection of those 3D points in 2D
-		NOTE: z-value will be equal to 1
-		Input: 3D points 
-		Output: 2D points (where z=1)
-		"""
 
-		pts_2D = pts / pts[:, 2][:, np.newaxis]
+	def pose_scene_visualization_ref(self, vis, scene_pts_ref):
+		"""
+		Creating a visualization of pose estimations and sparse point cloud
+		Input: vis (open3d)
+		Output: vis (with pose estimations and point cloud)
+		"""
+		# Add origin axes
+		axes = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+		vis.add_geometry(axes)
 
-		return pts_2D
+		# Add sparse point cloud
+		scene_cloud = o3d.geometry.PointCloud()
+		scene_cloud.points = o3d.utility.Vector3dVector(scene_pts_ref)
+		scene_cloud.colors = o3d.utility.Vector3dVector(self.scene_rgb)
+		vis.add_geometry(scene_cloud)
+
+		# Size options (jupyter gives issues when running this multiple times, but it looks better)
+		render_option = vis.get_render_option()
+		render_option.point_size = 2
+
+		# Run and destroy visualization 
+		vis.run()
+		vis.destroy_window()
 
 
 	def plot_rect_im(self, x, y, width, height, imnum):
@@ -392,12 +395,11 @@ class gNAV_agent:
 		# Show plot 
 		plt.show()
 
-
 	def grab_image_pts(self, x, y, width, height, imnum):
 		"""
 		Grab points of an image (that we know are on ground plane)
 		Based on specified starting x and y location, width, height
-		Potentially automate process in future 
+		Looking to automate process in future - currently manually chosen pts
 		"""
 
 		# Create grid of coords
@@ -420,8 +422,67 @@ class gNAV_agent:
 		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
 		self.im_pts_2d[imnum]['corners'] = corners
 
-		return pts_loc, pts_rgb
+		# return pts_loc, pts_rgb
 
+	def grab_image_pts_tot(self, mosaic_params):
+		"""
+		Grab points of an image (that we know are on ground plane)
+		Based on specified starting x and y location, width, height
+		Looking to automate process in future - currently manually chosen pts
+		"""
+		self.mosaic_params = mosaic_params
+		# Loop through mosaic_params for each image
+		for imnum in range(len(self.images_dict)):
+			x, y, width, height = mosaic_params[imnum]
+
+			# Create grid of coords
+			x_coords = np.arange(x, x+width)
+			y_coords = np.arange(y, y+height)
+			Px, Py = np.meshgrid(x_coords, y_coords, indexing='xy')
+			# print(Px, Py)
+
+			# Stack points for array 
+			pts_loc = np.stack((Px, Py), axis=-1) # -1 forms a new axis 
+			# print(pts_loc)
+
+			# Extract RGB
+			im_gnd = self.images_dict[imnum]
+			pts_rgb = im_gnd[y:y+height, x:x+width].astype(int)
+
+			# Store in dict
+			corners = np.array([x,y,width,height])
+			self.im_pts_2d[imnum] = {'pts': pts_loc}
+			self.im_pts_2d[imnum]['rgbc'] = pts_rgb
+			self.im_pts_2d[imnum]['corners'] = corners
+
+		# return pts_loc, pts_rgb
+
+	def plot_gnd_pts(self):
+		"""
+		Plotting boxes on each local image to represent ground sections to be used in mosaic process
+		Input: figure, axes
+		Output: subplot with proper ground section identification 
+		"""
+		rows = int(len(self.images_dict)/5)
+		# Loop through each image
+		for imnum in range(len(self.images_dict)):
+			plt.subplot(rows,5,imnum+1)
+			# Grab parameters 
+			x, y, width, height = self.mosaic_params[imnum]
+			# Draw rectangle 
+			rect = plt.Rectangle((x,y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+			# Grab correct image based on number indicator 
+			im_gnd_plt = self.images_dict[imnum]
+			im_gnd_plt = cv2.cvtColor(im_gnd_plt, cv2.COLOR_BGR2RGB)
+			# print(im_gnd_plt)
+
+			# Plot 
+			plt.imshow(im_gnd_plt)
+			plt.gca().add_patch(rect)
+			plt.axis("off")
+
+		# Show plot 
+		plt.show()
 
 	def unit_vec_c(self, imnum):
 		"""
@@ -440,10 +501,8 @@ class gNAV_agent:
 		Px = pts_loc[..., 0] - shape_im_x / 2  # Shape (H, W)
 		Py = -pts_loc[..., 1] + shape_im_y / 2  # Shape (H, W)
 
-		# Apply final coordinate transformations - THIS MIGHT NOT BE NECESSARY 
-		# Px, Py = -Py, -Px  # Swap and negate as per coordinate system
-		# Px, Py = Py, Px # DONT SWAP
-		Px, Py = -Px, Py
+		# Apply final coordinate transformations
+		Px, Py = -Py, -Px  # Swap and negate as per coordinate system
 
 		# Compute magnitude of vectors
 		mag = np.sqrt(Px**2 + Py**2 + self.focal**2)  # Shape (H, W)
@@ -458,7 +517,6 @@ class gNAV_agent:
 		pts_rgb_gnd = pts_rgb.reshape(-1, 3) / 255  # Normalize and reshape
 
 		return pts_vec_c, pts_rgb_gnd
-
 
 
 	def get_pose_id(self, id,imnum):
@@ -533,6 +591,28 @@ class gNAV_agent:
 		return gray_colors
 
 
+	def mosaic_visualization(self, vis):
+		""" 
+		Plotting the new scene mosaic 
+		Input: vis (from open3d)
+		Output: vis with mosaic (from open3d)
+		"""
+
+		# Create axes @ origin
+		axis_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+		vis.add_geometry(axis_origin)
+
+		for i in range(len(self.images_dict)):
+			cloud = o3d.geometry.PointCloud()
+			cloud.points = o3d.utility.Vector3dVector(self.im_mosaic[i]['pts'])
+			cloud.colors = o3d.utility.Vector3dVector(self.im_mosaic[i]['color_g'])
+			vis.add_geometry(cloud)
+
+		# Run and destroy visualization 
+		vis.run()
+		vis.destroy_window()
+
+
 	def tform_create(self,x,y,z,roll,pitch,yaw):
 		"""
 		Creates a transformation matrix 
@@ -552,7 +632,83 @@ class gNAV_agent:
 		tform = np.concatenate([np.concatenate([rotmat, trans], 1), bottom], 0)
 		# print("\nTransformation matrix \n", tform)
 
-		return tform 
+		return tform
+
+	def implement_guess(self, tform_guess, scale):
+		"""
+		Implementing the newest state estimate guess for mosaic
+		Input: transformation guess, scaling factor
+		Output: transformed points for best guess
+		"""
+
+		# Implement tform for each image
+		for i in range(len(self.images_dict)):
+			loc_im_pts = self.im_mosaic[i]['pts'].copy()
+			# apply scale
+			loc_im_pts[:,:2] *= scale
+			# apply tform
+			__, loc_im_pts_guess, loc_im_vec_guess = self.unit_vec_tform(loc_im_pts, self.origin_w, tform_guess)
+			# Update best guess
+			self.im_pts_best_guess[i] = {'pts': loc_im_pts_guess}
+
+	def update_guess(self, tform_guess, scale):
+		"""
+		Implementing the newest state estimate guess for mosaic
+		Input: transformation guess, scaling factor
+		Output: transformed points for best guess
+		"""
+
+		# Implement tform for each image
+		for i in range(len(self.images_dict)):
+			loc_im_pts = self.im_mosaic[i]['pts'].copy()
+			# apply scale
+			loc_im_pts[:,:2] *= scale
+			# apply tform
+			__, loc_im_pts_guess, loc_im_vec_guess = self.unit_vec_tform(loc_im_pts, self.origin_w, tform_guess)
+			# Update best guess
+			self.im_pts_best_guess[i]['pts'] = loc_im_pts_guess
+
+
+	def mosaic_w_ref_visualization(self, vis):
+		""" 
+		Plotting the new scene mosaic 
+		Input: vis (from open3d)
+		Output: vis with mosaic (from open3d)
+		"""
+
+		# Create axes @ origin
+		axis_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+		vis.add_geometry(axis_origin)
+
+		for i in range(len(self.images_dict)):
+			cloud = o3d.geometry.PointCloud()
+			cloud.points = o3d.utility.Vector3dVector(self.im_pts_best_guess[i]['pts'])
+			cloud.colors = o3d.utility.Vector3dVector(self.im_mosaic[i]['color_g'])
+			vis.add_geometry(cloud)
+
+		# Create point cloud for reference cloud (satellite)
+		ref_cloud = o3d.geometry.PointCloud()
+		ref_cloud.points = o3d.utility.Vector3dVector(self.ref_pts)
+		ref_cloud.colors = o3d.utility.Vector3dVector(self.ref_rgb)
+		vis.add_geometry(ref_cloud)
+
+		# # Size options (jupyter gives issues when running this multiple times, but it looks better)
+		# render_option = vis.get_render_option()
+		# render_option.point_size = 2
+
+		# # Set up initial viewpoint
+		# view_control = vis.get_view_control()
+		# # Direction which the camera is looking
+		# view_control.set_front([0, 0, -1])  # Set the camera facing direction
+		# # Point which the camera revolves about 
+		# view_control.set_lookat([0, 0, 0])   # Set the focus point
+		# # Defines which way is up in the camera perspective 
+		# view_control.set_up([0, -1, 0])       # Set the up direction
+		# view_control.set_zoom(.45)           # Adjust zoom if necessary
+
+		# Run and destroy visualization 
+		vis.run()
+		vis.destroy_window()
 
 	def get_inside_sat_pts(self, imnum, shiftx, shifty):
 		"""
@@ -583,7 +739,8 @@ class gNAV_agent:
 		inside_cg = self.ref_rgb[mask]
 
 		return inside_pts, inside_cg
-		
+
+
 
 	def ssd_nxn(self, n, imnum):
 		"""
@@ -637,287 +794,249 @@ class gNAV_agent:
 		return ssds
 
 
-
-	def ssd_nxn_NEWnew(self, n, imnum):
+	def dy_from_ssd(self, n):
 		"""
-		New SSD process to run faster
-		New lookup process instead of using the trees*****
-		Sum of squared differences. Shifts around pixels 
-		Input: n shift amount, image number
-		Output: sum of squared differences for each shift
+		Takes SSD values and creates vectors from original position to minimum SSD location 
+		Inputs: n (shift max)
+		Outputs: yi (to be used for jacobian)
 		"""
-		self.check_pts = {} # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
-		self.check_pts_sat = {} # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT 
-		downs = 1 # Factor to downsample by 
-		ssds = np.zeros((2*n+1,2*n+1))
-		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
-		# print(loc_pts)
+		# Set extension pixel threshold
+		extend = 10
+		# Create vector from original position to minimum SSD location
+		cor_vecs = np.zeros((len(self.images_dict), 2))
+		base_vec = np.zeros((len(self.images_dict), 2))
+		for im_cv in range(len(self.images_dict)):
+			# Grabb SSDs - get ID of the minimum
+			ssds = self.ssds_curr[im_cv]
+			idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+			# print("\nidrow, idcol\n", idrow, idcol)
+			# Define best shift vector
+			shiftx_min, shifty_min = idrow-n, idcol-n
+			# # CHECK IF MIN SSD IS ON EDGE - leave out for now
+			# if shiftx_min == n or shifty_min == n:
+			# 	print(f"Need to extend search of image {im_cv}:\n")
+			# 	print(f"Current shift vector = {shiftx_min, shifty_min}\n")
+			# 	ssds = gnav.ssd_nxn(n+extend, im_cv)
+			# 	gnav.ssds_curr[im_cv] = ssds
+			# 	idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+			# 	shiftx_min = idrow-(n+extend)
+			# 	shifty_min = idcol-(n+extend)
+			# 	print(f"\n New shift vector = {shiftx_min, shifty_min}\n")
 
-		for shiftx in range(-n,n+1):
-			for shifty in range(-n, n+1):
-				# Get points inside corners for satellite image 
-				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
-				# print(inside_pts.shape)
+			cor_vecs[im_cv] = shiftx_min, shifty_min
+			sat_pts, __ = self.get_inside_sat_pts(im_cv, 0,0)
+			basex, basey = np.mean(sat_pts[:,0]), np.mean(sat_pts[:,1])
+			base_vec[im_cv] = basex, basey
 
-				# Downsample pts (grab only x and y)
-				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
-				downsampled_cg = inside_cg[::downs,0]
-				self.check_pts_sat[shiftx, shifty] = downsampled_pts # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
-				# print("Colors of downsampled pts\n", downsampled_cg)
-				# print(downsampled_cg.shape)
+		# Create and stack point from vectors 
+		points_b = np.hstack((base_vec, np.zeros((len(self.images_dict), 1))))
+		points_e = points_b + np.hstack((cor_vecs, np.zeros((len(self.images_dict), 1))))
+		points = np.vstack((points_b, points_e))
+		# print("\nBeginning of points: \n", points_b)
+	    # print("\nEnd of points: \n",points_e)
+	    # print("\nAll points: \n",points)
 
-				# Shift points 
-				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
-				# print(shiftx,shifty)
-				# print(shifted_loc_pts.shape)
+		y_i = cor_vecs.reshape(-1,1)
+		# print("\nYi\n", y_i)
 
-				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
-				# This is as a sanity check
-				# For the real implementation, we are moving the satellite points (downsampled_pts) ...
-				# ... through this process
-				# print("Shifted local points\n", shifted_loc_pts)
-
-				# 1. Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
-				# print(self.best_guess_tform)
-				best_guess_inv = np.linalg.inv(self.best_guess_tform)
-				# print(best_guess_inv)
-				# __, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
-				__, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
-				loc_pts_ref[:, :2] /= self.best_guess_scale
-				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
-
-				# 2. Ref plane to world coords
-				__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
-				# print("\nShould be the local points in world cords\n", loc_pts_wrd)
+		return y_i
 
 
-				# 3. World coords to camera coords 
-				# print("\nImage specific transformation\n", self.im_pts_2d[imnum]['w2c'])
-				__, loc_pts_cam, __ = self.unit_vec_tform(loc_pts_wrd, self.origin_w, self.im_pts_2d[imnum]['w2c'])
-
-
-				# 4. 3d camera pts --> 2d camera points
-				z = loc_pts_cam[:,2]
-				pts_2d = np.stack((loc_pts_cam[:,0]*self.focal/z, loc_pts_cam[:,1]*self.focal/z), axis=1)
-				# print("\n2D points\n", pts_2d)
-
-				# 5. Shift to proper coords 
-				px, py = pts_2d[:,0], pts_2d[:,1]
-				# Shift
-				PY = -px
-				PX = -py
-				# Re-center
-				Px = PX + (self.images_dict[imnum].shape[1])/2
-				Py = -PY + (self.images_dict[imnum].shape[0])/2
-				pts_2d = np.stack((Px, Py), axis=1) 
-				# pts_2d = np.reshape(self.im_pts_2d[imnum]['corners'][3],self.im_pts_2d[imnum]['corners'][2],2)
-
-				# 6. Round pixel locs - ENDING HERE 
-				# print("\nNon-rounded points\n", pts_2d)
-				pts_2d = np.round(pts_2d).astype(int)
-				# print("\nRounded points\n", pts_2d)
-				self.check_pts[shiftx, shifty] = pts_2d # ***JUST AS A CHECK, DELETE WHEN FIGURED OUT
-
-				# 7. Get intensities from the 2D camera coords
-				x, y = pts_2d[...,0], pts_2d[...,1]
-				# print(x,y)
-				# print(x[1965],y[1965])
-				# im = cv2.cvtColor(self.images_dict[imnum], cv2.COLOR_BGR2RGB)
-				rgbvals = self.images_dict[imnum][y,x]
-				rgbvals = rgbvals.astype(np.float32)
-				rgbvals /= 255 # Normalize
-				print(rgbvals)
-				# print("\nRgbvals\n", rgbvals)
-				# Flatten to (N, 3)
-				# rgb_flat = rgbvals.reshape(-1, 3)
-				# print("\nRGBFLAT\n", rgb_flat)
-				# Apply intensity formula
-				intensity = (0.299 * rgbvals[:, 0] +
-					0.587 * rgbvals[:, 1] +
-					0.114 * rgbvals[:, 2])#.reshape(-1, 1)
-
-				print("\nNearest Intensities\n", intensity)
-				self.ints1 = intensity
-
-				# 8. Calculate SSDS
-				diffs = downsampled_cg - intensity 
-				# print("\nDiffs\n", diffs)
-				ssd_curr = np.sum(diffs**2)
-
-				# Store SSD value for the current shift
-				ssds[shiftx + n, shifty + n] = ssd_curr
-				# print("SSD = ", ssd_curr)
-
-		print("Number of points used: ", diffs.shape)
-
-		return ssds
-
-
-# FUNCTIONS FOR LSQUARES PROCESS 
-# 1. Generate deltaY term from SSDs (input: self, n) (output: yi)
-# 2. Form big jacobian J (input: self, parameters_best guess), (output: J)
-# 3. Least squares dalpha (input: self, J, yi) (output: dalpha, new params)
-# 4. Apply change to points (input: self, params) (output: "Done")
-
-
-
-
-
-
-# NOTES: LETS CHECK THE ORDER OF THE INTENSITIES 
-# They may be the right intensities, but in the wrong order
-# List the first 10, then plot them 
-# NO
-# START WITH A FULL BLUE SECTION 
-# See if the intensities are the same between the two methods (they should be)
-
-
-# The issue is within the shift, trend is off, but SSD for zero shift seems close enough
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# DELETE WHEN DONE
-	def ssd_nxn_NEWL(self, n, imnum):
+	def form_jacobian(self, parameters_best_guess):
 		"""
-	  *** DID NOT WORK, KEEPING HERE FOR REFERENCE ***
-		New SSD process to run faster
-		New lookup process instead of using the trees*****
-		Sum of squared differences. Shifts around pixels 
-		Input: n shift amount, image number
-		Output: sum of squared differences for each shift
+		Forms jacobian matrix of for change across all patches 
+		Input: Current best guess parameters (scale, theta, dx, dy)
+		Output: Full Jacobian J (dim = len(images)*2 x 4)
 		"""
-		downs = 1 # Factor to downsample by 
-		ssds = np.zeros((2*n+1,2*n+1))
-		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
-		# print(loc_pts)
+		# Parameters are the current best guess
+		params = parameters_best_guess
+		# Form Jacobian for each image
+		J = np.zeros((2*len(self.images_dict),4))
+		theta = params[1][0]
+		s = params[0][0]
+		for i_m in range(len(self.images_dict)):
+			xpi = np.mean(self.im_pts_best_guess[i_m]['pts'][:,0])
+			xqi = np.mean(self.im_pts_best_guess[i_m]['pts'][:,1])
+			# Jacobian value (based on derived state eqns)
+			j11 = np.cos(theta)*xpi - np.sin(theta)*xqi
+			j21 = np.sin(theta)*xpi + np.cos(theta)*xqi
+			j12 = -params[0][0]*(np.sin(theta)*xpi + np.cos(theta)*xqi)
+			j22 = params[0][0]*(np.cos(theta)*xpi - np.sin(theta)*xqi)
+			j13, j23, j14, j24 = 1, 0, 0, 1
 
-		for shiftx in range(-n,n+1):
-			for shifty in range(-n, n+1):
-				# Get points inside corners for satellite image 
-				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
-				# print(inside_pts.shape)
+			# Construct Jacobian 
+			J_upper = np.hstack((j11,j12,j13,j14)) # First row block (y_p terms)
+			J_lower = np.hstack((j21,j22,j23,j24)) # Second row block (y_q terms)
+			j = np.vstack((J_upper, J_lower))
 
-				# Downsample pts (grab only x and y)
-				downsampled_pts = inside_pts[::downs]#, :-1] # Take every 'downs'-th element
-				downsampled_cg = inside_cg[::downs,0]
-				print(downsampled_pts.shape)
+			#Insert in proper index 
+			J[2*(i_m):2*(i_m)+2, :] = j
 
-				# Shift points 
-				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
-				# print(shiftx,shifty)
-				print(shifted_loc_pts.shape)
+		print("\nJACOBIAN\n", J)
 
-				# USE THESE POINTS TO NOW GO BACK TO AN IMAGE PT 
-				# This is as a sanity check
-				# For the real implementation, we are moving the satellite points (downsampled_pts) ...
-				# ... through this process
-				# print("Shifted local points\n", shifted_loc_pts)
 
-				# Inverse of current guess - VERIFIED TO MATCH BEFORE INIT_G IMPLEMENTATION
-				# print(self.best_guess_tform)
-				best_guess_inv = np.linalg.inv(self.best_guess_tform)
-				# print(best_guess_inv)
-				# __, loc_pts_ref, __ = self.unit_vec_tform(shifted_loc_pts, self.origin_w, best_guess_inv)
-				__, loc_pts_ref, __ = self.unit_vec_tform(downsampled_pts, self.origin_w, best_guess_inv)
-				loc_pts_ref[:, :2] /= self.best_guess_scale
-				# print("\nShould be the local points in ref frame\n", loc_pts_ref)
+		return J
 
-				# Ref plane to world coords
-				__, loc_pts_wrd, __ = self.unit_vec_tform(loc_pts_ref, self.origin_w, self.tform_ref_frame)
-				print("\nShould be the local points in world cords\n", loc_pts_wrd)
+	def param_change(self, J, y_i):
+		"""
+		Parameter update step for each iteration
+		Input: Jacobian, delatY
+		Output: change in params, new params
+		"""
+		JTJi = np.linalg.inv(J.T@J)
+		Dalpha = JTJi@J.T@y_i
 
-				# World coords to world unit vectors
-				# print(self.im_pts_2d[imnum]['r'][:, np.newaxis])
-				pts_vec_w = (loc_pts_wrd - self.im_pts_2d[imnum]['origin']) / self.im_pts_2d[imnum]['r'][:, np.newaxis]
-				# print("\nShould be the local points in world unit vecs\n", pts_vec_w)
+		return Dalpha
 
-				# World unit vectors to camera unit vectors
-				__, __, loc_vec_cam = self.unit_vec_tform(pts_vec_w, self.origin_w, self.im_pts_2d[imnum]['w2c'])
-				# print("\nShould be the local unit vecs in cam coords\n", loc_vec_cam)
+	def mapmatch_lsquares(self, n, iterations, params_best_guess):
+		"""
+		Implementing full least squares process for map matching
+		Inputs: n (pixel shift mag), iterations, initial guess
+		Output: Updated parameters (s, yaw, tp tq)
+		"""
+		self.params_best_guess = params_best_guess
+		# Loop based on iterations
+		for iter_idx in range(iterations):
+			for imnum in range(len(self.images_dict)):
+				# Implement SSD process
+				ssds = self.ssd_nxn(n, imnum)
+				self.ssds_curr[imnum] = ssds
 
-				# Camera unit vectors --> 2D camera coords
-				# Go to camera space 
-				mag_flat = self.im_pts_2d[imnum]['mag'].reshape(-1)
-				# print("Mags", mag_flat)
-				locs = loc_vec_cam * mag_flat[:, None]
-				print("\nLOCS\n", locs)
-				px, py = locs[:,0], locs[:,1]
-				# # Pixel shifts
-				PY = -px
-				PX = -py
-				# Re-center
-				Px = PX + (self.images_dict[imnum].shape[1])/2
-				Py = -PY + (self.images_dict[imnum].shape[0])/2
-				pts_2d = np.stack((Px, Py), axis=1)
-				# pts_2d = pts_2d.reshape(self.im_pts_2d[imnum]['mag'].shape[0], self.im_pts_2d[imnum]['mag'].shape[1], 2)
-				pts_2d = np.round(pts_2d).astype(int)
-				print("\nHopefully the 2d points\n", pts_2d)
-				# print("\nShould match this\n", self.im_pts_2d[imnum]['pts'])
+			# Generate correction vectors y_i
+			y_i = self.dy_from_ssd(n)
+			print(f"Here is y_i for iteration {iter_idx}:\n", y_i)
 
-				# Get intensities from the 2D camera coords
-				x, y = pts_2d[...,0], pts_2d[...,1]
-				# print(x,y)
-				rgbvals = self.images_dict[imnum][y,x].astype(np.float32)
-				rgbvals /= 255 # Normalize
-				
-				# Flatten to (N, 3)
-				rgb_flat = rgbvals.reshape(-1, 3)
-				# print("\nrgbvals\n", rgb_flat.shape)
-				# Apply intensity formula
-				intensity = (0.299 * rgb_flat[:, 0] +
-					0.587 * rgb_flat[:, 1] +
-					0.114 * rgb_flat[:, 2]).reshape(-1, 1)
+			# Create jacobian
+			J = self.form_jacobian(params_best_guess)
 
-				print("\nIntensities\n", intensity)
+			# Get delta_params
+			Dalpha = self.param_change(J, y_i)
+			print("\nDelta Alpha:\n", Dalpha)
+			# Update params 
+			self.params_best_guess += Dalpha
+			print("\nUpdated Params: scale, theta, tq, tp\n", self.params_best_guess)
 
-				# # Build tree
-				# tree = cKDTree(shifted_loc_pts[:,:2])
-
-				# # Find nearest points and calculate intensities
-				# distances, indices = tree.query(downsampled_pts, k=1)
+			# Apply change 
+			# Create transformation matrix
+			tform_mat = self.tform_create(self.params_best_guess[2][0], self.params_best_guess[3][0], 0, 0, 0, self.params_best_guess[1][0])
+			print("\nTransformation matrix\n", tform_mat)
+			# Apply tform matrix to image patches
+			self.update_guess(tform_mat, self.params_best_guess[0][0])
 
 
 
+		return self.params_best_guess
 
 
-				
-	# 			# # nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
-	# 			# print(distances, indices)
+	def ssd_surface_plots(self, ims, n):
+		"""
+		Surface plot visualizations for SSD confidence level
+		Inputs: Figure, Images to display (1-10 meaining all ten images)
+		Output: Figure(s) (depending on number of images)
+		"""
 
-	# 			# # Calculate SSDS
-	# 			# diffs = downsampled_cg - nearest_intensities 
-	# 			# ssd_curr = np.sum(diffs**2)
+		# X coords:
+		x = np.linspace(-n,n, 2*n+1)
+		y = np.linspace(-n,n, 2*n+1)
+		Y, X = np.meshgrid(x,y)
 
-	# 			# # Store SSD value for the current shift
-	# 			# ssds[shiftx + n, shifty + n] = ssd_curr
-	# 			# print("SSD = ", ssd_curr)
+		# Create plot for each image specified
+		for i in range(ims):
+			# Find best shift
+			ssds = self.ssds_curr[i]
+			idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+			shiftx_min = idrow - n
+			shifty_min = idcol - n
+			print(f"BEST SHIFT for image {i}:", shiftx_min, shifty_min)
+			# print("BEST SSD =", ssds[idrow, idcol])
 
-	# 	# print("Number of points used: ", diffs.shape)
+			# Plot SSD as a surface
+			fig = plt.figure()
+			ax = fig.add_subplot(111, projection='3d')
 
-	# 	return ssds
+			# Surface plot
+			surf = ax.plot_surface(X, Y, ssds, cmap='viridis', edgecolor='none')
+
+			# Highlight minimum SSD point
+			ax.scatter(shiftx_min, shifty_min, ssds[idrow, idcol], color='red', s=50, label='Min SSD')
+
+			# Set axis limits
+			ax.set_xlim([-n, n])
+			ax.set_ylim([-n, n])
+			ax.set_zlim([np.min(ssds), np.max(ssds)])
+
+			# Set ticks at every 1 unit
+			ax.set_xticks(np.arange(-n, n+1, 5))
+			ax.set_yticks(np.arange(-n, n+1, 5))
+			ax.set_zticks([])
+
+			# Labels and title
+			ax.set_xlabel('X Shift (pixels)')
+			ax.set_ylabel('Y Shift (pixels)')
+			# ax.set_zlabel('SSD Value')
+			ax.set_title(f'SSD Surface Plot: Image {i}')
+			ax.legend()
+			ax.view_init(elev=90, azim=-90)
+			# Color bar for the surface
+			# fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, label='SSD Value')
+
+			plt.show()
+
+
+	def unit_vec_c_MICRO(self, imnum, pts):
+		"""
+		Create unit vectors in camera frame coordinates for desired pixels 
+		Using pixel location of points.
+		"""
+		# Get pixel locations and RGB values
+		# print("Micro patch pts: \n", pts)
+		pts_rgb_micro = self.images_dict[imnum][pts[:,1], pts[:,0]]/255
+		# print("Rgb: \n", pts_rgb_mirco)
+
+		im_imnum = self.images_dict[imnum]
+		shape_im_y, shape_im_x = im_imnum.shape[:2]
+
+		# Compute shifted pixel coordinates
+		Px = pts[:, 0] - shape_im_x / 2  # Shape (H, W)
+		Py = -pts[:, 1] + shape_im_y / 2  # Shape (H, W)
+
+		# Apply final coordinate transformations
+		Px, Py = -Py, -Px  # Swap and negate as per coordinate system
+
+		# Compute magnitude of vectors
+		mag = np.sqrt(Px**2 + Py**2 + self.focal**2)  # Shape (H, W)
+		# self.im_pts_2d[imnum]['mag'] = mag
+
+		# Compute unit vectors
+		pts_vec_c = np.stack((Px / mag, Py / mag, np.full_like(Px, self.focal) / mag), axis=-1)  # Shape (H, W, 3)
+		# print("Unit vectors cam coords:\n", pts_vec_c)
+
+		return pts_vec_c, pts_rgb_micro
+
+
+	def implement_guess_micro(self, tform_guess, scale):
+		"""
+		Implementing the newest state estimate guess for mosaic
+		Input: transformation guess, scaling factor
+		Output: transformed points for best guess
+		"""
+
+		# Implement tform for each image
+		for i in range(len(self.images_dict)):
+			for b, pts in self.bins_2d.items():
+				if b[0] != i:
+					continue
+				loc_im_pts = self.im_mosaic_micro[i][b]['pts'].copy()
+				# apply scale
+				loc_im_pts[:,:2] *= scale
+				# apply tform
+				__, loc_im_pts_guess, loc_im_vec_guess = self.unit_vec_tform(loc_im_pts, self.origin_w, tform_guess)
+				# Update best guess
+				# Initialize the dictionary for this image if not yet created
+				if i not in self.im_pts_best_guess_micro:
+					self.im_pts_best_guess_micro[i] = {}
+				self.im_pts_best_guess_micro[i][b] = {'pts': loc_im_pts_guess}
+
+
+		
+
