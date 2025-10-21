@@ -34,6 +34,7 @@ class gNAV_agent:
 		# Initialize best guess and SSDs
 		self.im_pts_best_guess = {}
 		self.ssds_curr = {}
+		self.ssds_curr_micro = {}
 		# self.ssds1_curr = {}
 		# Ground plane points - chosen MANUALLY
 		self.pts_gnd_idx = np.array([25440, 25450, 25441, 25449, 25442, 25445, 103922, 103921, 103919, 103920])
@@ -1036,6 +1037,126 @@ class gNAV_agent:
 				if i not in self.im_pts_best_guess_micro:
 					self.im_pts_best_guess_micro[i] = {}
 				self.im_pts_best_guess_micro[i][b] = {'pts': loc_im_pts_guess}
+
+
+
+	def get_inside_sat_pts_micro(self, b, shiftx, shifty):
+		"""
+		Getting points inside the satellite image
+		Input: image number, shiftx, shifty
+		Output: Points inside corners from satellite image 
+		"""
+
+		# Get corners 
+		# corners = self.im_pts_2d[b[0]]['corners'] # b[0] is imnum
+
+		# # Define corner indices 
+		# idxs = [0, -corners[2], -1, corners[2]-1]
+		# # print(idxs)
+		
+		# # Grab corner points 
+		# points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
+		# # Shift corners of points
+		# points[:,0] += shiftx
+		# points[:,1] += shifty
+		# points2d = points[:,:-1]
+		# # print(points2d)
+
+		# # Define polygon path 
+		# polygon_path = Path(points2d)
+		# # Points within polygon 
+		# mask = polygon_path.contains_points(self.ref_pts[:,:-1])
+		# inside_pts = self.ref_pts[mask]
+		# inside_cg = self.ref_rgb[mask]
+
+		# return inside_pts, inside_cg
+
+		# MY TURN 
+		# Get corners 
+		corners = self.bins_2d_corners[b]
+		# print("These are the corners:", corners)
+
+		# Define corner indices
+		idxs = [0, -corners[2], -1, corners[2]-1]
+		# print(idxs)
+
+		# Grab corner points 
+		points = np.array(self.im_pts_best_guess_micro[b[0]][b]['pts'])[idxs]
+		# print(f"Corner points for the micro patch: \n", points)
+		# Shift points 
+		points[:,0] += shiftx
+		points[:,1] += shifty
+		points2d = points[:,:-1]
+		# print(points2d)
+
+		# Define polygon path 
+		polygon_path = Path(points2d)
+		# Points within polygon 
+		mask = polygon_path.contains_points(self.ref_pts[:,:-1])
+		inside_pts = self.ref_pts[mask]
+		inside_cg = self.ref_rgb[mask]
+
+		return inside_pts, inside_cg
+
+
+
+
+	def ssd_nxn_micro(self, n, imnum,b):
+		"""
+		New SSD process to run faster
+		Sum of squared differences. Shifts around pixels 
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess_micro[imnum][b]['pts'].copy()
+		# print("Points check:\n", loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts_micro(b,shiftx,shifty)
+				print(inside_pts.shape)
+				print("Inside points: \n", inside_pts)
+				self.inside_pts = inside_pts # TESTING
+				# return # TESTING
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Colors of downsampled pts\n", downsampled_cg)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# self.shifted_loc_pts_TEST = shifted_loc_pts # TESTING
+				# return # TESTING 
+				# print(shiftx,shifty)
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# *******LEAVING OFF HERE - TEST 
+				# # Find nearest points and calculate intensities
+				# distances, indices = tree.query(downsampled_pts, k=1)
+				# nearest_intensities = self.im_mosaic_micro[b[0]][b]['color_g'][indices,0]
+				# self.ints2 = nearest_intensities
+				# # print("\nNearest Intensities\n", nearest_intensities)
+				# # print(distances, indices)
+
+				# # Calculate SSDS
+				# diffs = downsampled_cg - nearest_intensities 
+				# # print("\nDifferences\n", diffs)
+		# 		ssd_curr = np.sum(diffs**2)
+
+		# 		# Store SSD value for the current shift
+		# 		ssds[shiftx + n, shifty + n] = ssd_curr
+		# 		# print("SSD = ", ssd_curr)
+
+		# print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
+		return ssds
 
 
 		
