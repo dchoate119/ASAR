@@ -38,6 +38,7 @@ class gNAV_agent:
 		self.ssds_curr = {}
 		self.ssds_curr_micro = {}
 		# self.ssds1_curr = {}
+		self.im_num = len(self.images_dict)
 		# Ground plane points - chosen MANUALLY
 		self.pts_gnd_idx = np.array([25440, 25450, 25441, 25449, 25442, 25445, 103922, 103921, 103919, 103920])
 
