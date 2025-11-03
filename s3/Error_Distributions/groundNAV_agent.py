@@ -1062,10 +1062,10 @@ class gNAV_agent:
 
 
 
-	def plot_traps_w_microps(self):
+	def plot_traps_w_microps(self,n):
 		""" 
 		Use matplotlib to plot the patch trapezoids with the grids of the micropatches
-		Input: Nada
+		Input: grid size n
 		Output: Subplot with trapezoids and micropatch grids
 		"""
 
@@ -1102,7 +1102,7 @@ class gNAV_agent:
 		        ax.plot(xs, ys, color='blue', linewidth=0.7)
 
 		    ax.set_aspect('equal')
-		    ax.set_title(f"Image {i}")
+		    ax.set_title(f"Image {i}: {n}x{n} grid")
 
 		# Shared legend
 		handles, labels = axes[0].get_legend_handles_labels() if num_imgs > 1 else ax.get_legend_handles_labels()
