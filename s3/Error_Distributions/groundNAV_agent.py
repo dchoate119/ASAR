@@ -11,6 +11,7 @@ import os
 from mpl_toolkits.mplot3d import Axes3D
 from shapely.geometry import Polygon, box, Point
 from shapely.affinity import rotate
+import copy
 
 
 from colmapParsingUtils import *
@@ -821,7 +822,7 @@ class gNAV_agent:
 			# 	print(f"Need to extend search of image {im_cv}:\n")
 			# 	print(f"Current shift vector = {shiftx_min, shifty_min}\n")
 			# 	ssds = gnav.ssd_nxn(n+extend, im_cv)
-			# 	gnav.ssds_curr[im_cv] = ssds
+			# 	self.ssds_curr[im_cv] = ssds
 			# 	idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
 			# 	shiftx_min = idrow-(n+extend)
 			# 	shifty_min = idcol-(n+extend)
@@ -986,6 +987,19 @@ class gNAV_agent:
 
 			plt.show()
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 	# *************************************
 	# Micropatch division and error distribution representation
 	# Helper functions
@@ -1062,6 +1076,94 @@ class gNAV_agent:
 
 
 
+	def grab_inside_sat_micro(self, imnum, pnum, shiftx, shifty):
+		"""
+		**************** NOT VALIDATED YET ********************
+		Grabbing the satellite points which correspond to the specific micropatch. 
+		Shifted according to SSD shift
+		Input: Image number, micropatch number, shift in x and y
+		Output: Satellite points within micropatch, colors within micropatch
+		"""
+
+		# Use corners from micropatches to create a mask around the satellite image
+		corners = self.micro_ps_local[imnum][pnum]['corners'].copy()
+		# print("Shift in x: ", shiftx, "Shift in y: ", shifty)
+		# print("Corners: \n", corners)
+		corners[:,0] += shiftx
+		corners[:,1] += shifty
+		# print("Shift-adjusted corners: \n", corners)
+
+		# Min and max, x and y
+		minx, miny = np.min(corners[:,0]), np.min(corners[:,1])
+		maxx, maxy = np.max(corners[:,0]), np.max(corners[:,1])
+		# print("Max x: ", maxx, "Max y: ", maxy, "Min x: ", minx, "Min y: ", miny)
+		mask = (
+		    (self.ref_pts[:,0] >= minx) & (self.ref_pts[:,0] <= maxx) &
+		    (self.ref_pts[:,1] >= miny) & (self.ref_pts[:,1] <= maxy)
+		)
+		# print("Mask: \n", mask)
+		# Inside points and colors
+		inside_pts = self.ref_pts[mask]
+		inside_cg = self.ref_rgb[mask]
+		# print("Inside points: \n", inside_pts)
+		# print("Inside colors: \n", inside_cg)
+
+		return inside_pts, inside_cg
+
+
+
+
+	def ssd_nxn_micro(self, n, imnum, pnum):
+		"""
+		***************** NOT VALIDATED YET*****************
+		Gets the SSD values for an individual micropatch within an image
+		Input: n (for nxn pixel shift), image number, micro-patch number 
+		Output: SSD for the micropatch and all nxn shifts
+		"""
+
+		# Downsample factor
+		downs = 1
+		ssds = np.zeros((2*n+1, 2*n+1))
+		loc_pts = self.micro_ps_local[imnum][pnum]['pts'].copy()
+		# print("Micropatch locations: \n", loc_pts)
+
+		# Each nxn shift
+		for shiftx in range(-n, n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image
+				inside_pts, inside_cg = self.grab_inside_sat_micro(imnum, pnum, shiftx, shifty)
+				# self.inside_pts = inside_pts # TESTING PURPOSES 
+				# self.inside_cg = inside_cg # TESTING PURPOSES
+				# Downsample points (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Color of downsampled satellite pts: \n", downsampled_cg)
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx, shifty, 0])
+				# print("Shifted micropatch pts: \n":, shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.micro_ps_local[imnum][pnum]['color_g'][indices,0] # CHECK THIS 
+				# print("Nearest intensities: \n", nearest_intensities)
+				# self.intensity_check = nearest_intensities # TESTING PURPOSES 
+				# self.pts_check = shifted_loc_pts[indices] # TESTING PURPOSES
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities
+				# print("Differences: \n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store ssd value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		return ssds
+
+
 	def plot_traps_w_microps(self,n):
 		""" 
 		Use matplotlib to plot the patch trapezoids with the grids of the micropatches
@@ -1090,8 +1192,8 @@ class gNAV_agent:
 		    ax.fill(x, y, alpha=0.3, color='gray', label='Trapezoid')
 
 		    # Draw micropatches from corners
-		    for j in range(len(self.micro_ps[i])):
-		        corners = self.micro_ps[i][j]['corners']
+		    for j in range(len(self.micro_ps_local[i])):
+		        corners = self.micro_ps_local[i][j]['corners']
 		        if corners is None or len(corners) == 0:
 		            continue
 
@@ -1109,3 +1211,137 @@ class gNAV_agent:
 		fig.legend(handles, labels, loc='upper right')
 		plt.tight_layout()
 		plt.show()
+
+	
+
+
+	def form_jacobian_micro(self, parameters_best_guess, imnum):
+		"""
+		Forms jacobian matrix of for change across all MICRO-patches 
+		Input: Current best guess parameters (scale, theta, dx, dy), specific image number
+		Output: Full Jacobian J (dim = len(micropatches)*2 x 4)
+		"""
+		# Parameters are the current best guess
+		params = parameters_best_guess
+		# Form Jacobian for each image
+		J = np.zeros((2*len(self.ssds_curr_micro[imnum]),4))
+		# print("BIG J: \n", J)
+		# print("\nJacobian shape:", J.shape)
+		theta = params[1][0]
+		# print("Theta:", theta)
+		s = params[0][0]
+		# print("Scale:", s)
+		for mp in range(len(self.ssds_curr_micro[imnum])):
+			xpi = np.mean(self.micro_ps_local[imnum][mp]['pts'][:,0])
+			xqi = np.mean(self.micro_ps_local[imnum][mp]['pts'][:,1])
+			# print("Micropatch points: \n", self.micro_ps_local[imnum][mp]['pts'])
+			# print("Mean x location: ", xpi)
+			# print("Mean y location: ", xqi)
+			# Jacobian value (based on derived state eqns)
+			j11 = np.cos(theta)*xpi - np.sin(theta)*xqi
+			j21 = np.sin(theta)*xpi + np.cos(theta)*xqi
+			j12 = -params[0][0]*(np.sin(theta)*xpi + np.cos(theta)*xqi)
+			j22 = params[0][0]*(np.cos(theta)*xpi - np.sin(theta)*xqi)
+			j13, j23, j14, j24 = 1, 0, 0, 1
+
+			# Construct Jacobian 
+			J_upper = np.hstack((j11,j12,j13,j14)) # First row block (y_p terms)
+			J_lower = np.hstack((j21,j22,j23,j24)) # Second row block (y_q terms)
+			j = np.vstack((J_upper, J_lower))
+			# print("Micropatch j: \n", j)
+
+			#Insert in proper index 
+			J[2*(mp):2*(mp)+2, :] = j
+
+		# print("\nJACOBIAN\n", J)
+
+
+		return J
+
+
+	def update_guess_LOCAL(self, tform_guess, scale, imnum):
+		"""
+		Implementing the newest state estimate guess for mosaic
+		Input: transformation guess, scaling factor
+		Output: transformed points for best guess
+		"""
+
+		# Implement tform for SINGLE image
+		loc_im_pts = self.im_mosaic[imnum]['pts'].copy()
+		# Apply scale
+		loc_im_pts[:,:2] *= scale
+		# Apply tform
+		__, loc_im_pts_guess, loc_im_vec_guess = self.unit_vec_tform(loc_im_pts, self.origin_w, tform_guess)
+		# Update LOCAL best guess
+		self.im_pts_best_guess_LOCAL[imnum]['pts'] = loc_im_pts_guess
+
+
+
+	def micropatch_division_LOCAL_UPDATE(self, n, imnum):
+		"""
+		Dividing the current patch 'best guesses' into square nxn micropatches
+		To be used for error distribution
+		******** ONLY DONE FOR ONE IMAGE - LOCAL CORRECTIONS ****
+		Input: n (side length for micropatches)
+		Output: micro_ps which contains:
+		1. corners for each micropatch 4x2
+		2. pts from the best guess within each micro patch 
+		3. color of the points within each patch
+		"""
+
+		# Grab current points and corners 
+		pts_curr = self.im_pts_best_guess_LOCAL[imnum]['pts']
+		corners = self.im_pts_2d[imnum]['corners']
+		# Define corner indices
+		idxs = [0, -corners[2], -1, corners[2]-1]
+		# Grab corner points
+		pts_corners = np.array(pts_curr[idxs])
+
+		# Create a polygon of 'trapezoid' patch
+		poly = Polygon(pts_corners[:,:2])
+
+		# Create grid
+		minx, miny, maxx, maxy = poly.bounds
+		x_coords = np.arange(minx, maxx, n)
+		y_coords = np.arange(miny, maxy, n)
+
+		# Squares
+		squares = []
+		for x in x_coords:
+			for y in y_coords:
+				sq = box(x, y, x+n, y+n)
+				# if poly.intersects(sq): # Using ones on border too
+				if poly.contains(sq): # only fully inside !
+					squares.append(sq)
+
+		# Add corners of each square into micropatch directory
+		curr_sqs = len(self.micro_ps[imnum]) # CHECK OLD LENGTH 
+		for j, sq in enumerate(squares):
+			cs = np.array(list(sq.exterior.coords)[:-1])
+
+			# Find points within each square bounds 
+			sq_minx, sq_miny, sq_maxx, sq_maxy = sq.bounds
+			# print(sq_minx, sq_miny, sq_maxx, sq_maxy)
+
+			# Mask for points and intensities
+			mask = (
+				(pts_curr[:,0] >= sq_minx) & (pts_curr[:,0] <= sq_maxx) &
+				(pts_curr[:,1] >= sq_miny) & (pts_curr[:,1] <= sq_maxy)
+			)
+
+			# Inside points
+			inside_pts = pts_curr[mask]
+			colors_g = np.array(self.im_mosaic[imnum]['color_g'])[mask]
+
+			self.micro_ps_local[imnum][j] = {
+				'corners': cs,
+				'pts': inside_pts,
+				'color_g': colors_g
+			}
+
+		# If we don't have enough micropatches  ****
+		if j < curr_sqs-1:
+			print("SHORT")
+
+
+		return self.micro_ps_local
