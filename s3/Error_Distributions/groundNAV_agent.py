@@ -821,7 +821,7 @@ class gNAV_agent:
 			# if shiftx_min == n or shifty_min == n:
 			# 	print(f"Need to extend search of image {im_cv}:\n")
 			# 	print(f"Current shift vector = {shiftx_min, shifty_min}\n")
-			# 	ssds = gnav.ssd_nxn(n+extend, im_cv)
+			# 	ssds = self.ssd_nxn(n+extend, im_cv)
 			# 	self.ssds_curr[im_cv] = ssds
 			# 	idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
 			# 	shiftx_min = idrow-(n+extend)
@@ -844,7 +844,7 @@ class gNAV_agent:
 		y_i = cor_vecs.reshape(-1,1)
 		# print("\nYi\n", y_i)
 
-		return y_i
+		return y_i, points
 
 
 	def form_jacobian(self, parameters_best_guess):
@@ -1078,7 +1078,6 @@ class gNAV_agent:
 
 	def grab_inside_sat_micro(self, imnum, pnum, shiftx, shifty):
 		"""
-		**************** NOT VALIDATED YET ********************
 		Grabbing the satellite points which correspond to the specific micropatch. 
 		Shifted according to SSD shift
 		Input: Image number, micropatch number, shift in x and y
@@ -1115,7 +1114,6 @@ class gNAV_agent:
 
 	def ssd_nxn_micro(self, n, imnum, pnum):
 		"""
-		***************** NOT VALIDATED YET*****************
 		Gets the SSD values for an individual micropatch within an image
 		Input: n (for nxn pixel shift), image number, micro-patch number 
 		Output: SSD for the micropatch and all nxn shifts
@@ -1212,7 +1210,59 @@ class gNAV_agent:
 		plt.tight_layout()
 		plt.show()
 
-	
+
+	def dy_from_ssd_micro(self, n, imnum):
+		"""
+		Takes SSD values and create vectors from original position to minimum SSD location
+		Inputs: n (shiftmax), imnum
+		Outputs: yi (correction vectors for each micropatch), points (points of vectors)
+		"""
+
+		# Set extension pixel threshold
+		extend = 5
+
+		# Create vector from original position to minimum SSD location
+		cor_vecs = np.zeros((len(self.ssds_curr_micro[imnum]), 2))
+		base_vec = np.zeros((len(self.ssds_curr_micro[imnum]), 2))
+
+		# for each micropatch 
+		for mp in range(len(self.ssds_curr_micro[imnum])):
+			ssds = self.ssds_curr_micro[imnum][mp]
+			idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+			# print("IDrow, IDcol \n", idrow, idcol)
+			# Define best shift
+			shiftx_min, shifty_min = idrow-n, idcol-n
+			# print(f"Shift vector = {shiftx_min, shifty_min}\n")
+			# CHECK IF MIN SSD IS ON THE EDGE 
+			# if shiftx_min == n or shifty_min == n:
+				# *****
+				# Potentially implement later (may not be necessary anymore)
+				# *****
+
+			# Inset correction vectors 
+			cor_vecs[mp] = shiftx_min, shifty_min
+			# Base vector for satellite location
+			sat_pts_forMean, __ = self.grab_inside_sat_micro(imnum, mp, 0, 0) # mean of sat points
+			basex, basey = np.mean(sat_pts_forMean[:,0]), np.mean(sat_pts_forMean[:,1])
+			base_vec[mp] = basex, basey
+
+		# Create and stack point from vectors
+		points_b = np.hstack((base_vec, np.zeros((len(self.ssds_curr_micro[imnum]), 1))))
+		points_e = points_b + np.hstack((cor_vecs, np.zeros((len(self.ssds_curr_micro[imnum]), 1))))
+		points = np.vstack((points_b, points_e))
+		# print("\nBeginning of points: \n", points_b)
+		# print("\nEnd of points: \n",points_e)
+		# print("\nAll points: \n",points) # RETURNING THIS
+		# print("\nCorrection Vectors: \n", cor_vecs)
+		y_i = cor_vecs.reshape(-1,1)
+		# print("\nCorrection Vectors reshaped: \n", y_i) # RETURNING THIS 
+
+		print(f"Done image {imnum}")        
+
+		# return y_i, points
+		return cor_vecs, points 
+
+
 
 
 	def form_jacobian_micro(self, parameters_best_guess, imnum):
@@ -1345,3 +1395,54 @@ class gNAV_agent:
 
 
 		return self.micro_ps_local
+
+
+
+
+	def plot_traps_w_cors(self,n, cor_vecs, points):
+		""" 
+		Use matplotlib to plot the patch trapezoids with the grids of the micropatches
+		Input: grid size n
+		Output: Subplot with trapezoids and micropatch grids
+		"""
+
+		num_imgs = len(self.images_dict)
+		fig, axes = plt.subplots(1, num_imgs, figsize=(5*num_imgs, 5))
+
+		for i in range(num_imgs):
+		    ax = axes[i] if num_imgs > 1 else axes
+		    
+		    # Polygon bound of mosaic points 
+		    # Get corners
+		    pts_curr = self.im_pts_best_guess[i]['pts']
+		    corners = self.im_pts_2d[i]['corners']
+		    # Define corner indices 
+		    idxs = [0, -corners[2], -1, corners[2]-1]
+		    # Grab corner points
+		    pts_corners = np.array(pts_curr[idxs])
+		    # Create polygon 
+		    poly = Polygon(pts_corners[:,:2])
+		    # Draw the base trapezoid if you still have it
+		    x, y = poly.exterior.xy
+		    ax.fill(x, y, alpha=0.3, color='gray', label='Trapezoid')
+
+		    # Draw correction vectors
+		    # point
+		    pt_base = points[i,:]
+		    pt_end = points[i+self.im_num]
+		    # vector
+		    u = cor_vecs[i*2]
+		    v = cor_vecs[i*2+1]
+
+		    # Plot
+		    ax.quiver(pt_base[0], pt_base[1], u, v, angles='xy', scale_units='xy',
+		    	scale=.5, color='red', width=0.008, label='Correction Vectors')
+
+		    ax.set_aspect('equal')
+		    ax.set_title(f"Image {i}: {int(u)} x {int(v)} correction")
+
+		# Shared legend
+		handles, labels = axes[0].get_legend_handles_labels() if num_imgs > 1 else ax.get_legend_handles_labels()
+		# fig.legend(handles, labels, loc='upper right')
+		plt.tight_layout()
+		plt.show()
