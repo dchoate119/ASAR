@@ -12,9 +12,10 @@ class microp_distb_plotter:
 	Also cleaning up notebook slop
 	Functions: 
 	- Microps w corVecs: plot patch trapezoids with grids of micropatches AND error vectors
-	- Microps w corVecs, SOFTMAX: NOT USING FOR NOW
-	- Plot distb vecs: ............
-	- Plot distb vecs BOTH: ........
+	- Plot distb vecs: x y offset correction for each micropatch 
+	- Softmax microp COMP: offset correction for each mp and softmax distb
+	- SSD surface plots: surface plot for SSD confidence level
+	- Softmax and conf dir: confidence directions for single-dir mps
 	"""
 	def __init__(self, gnav, n, n_ssd):
 		self.gnav = gnav # Gnav agent we need 
@@ -228,11 +229,343 @@ class microp_distb_plotter:
 
 	def ssd_surface_plots(self, ssds, imnum, n):
 		"""
-		xxxxx
+		Surface plot visualizations for SSD confidence level 
+		Inputs: Image number, ssds, n (shift length)
+		Output: SSD surface plot 
 		"""
+
+		# X coords:
+		x = np.linspace(-n,n, 2*n+1)
+		y = np.linspace(-n,n, 2*n+1)
+		Y, X = np.meshgrid(x,y)
+
+		idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+		shiftx_min = idrow - n
+		shifty_min = idcol - n
+		print(f"BEST SHIFT for image {imnum}:", shiftx_min, shifty_min)
+		# print("BEST SSD =", ssds[idrow, idcol])
+
+		# Plot SSD as a surface
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+
+		# Surface plot
+		surf = ax.plot_surface(X, Y, ssds, cmap='viridis', edgecolor='none')
+
+		# Highlight minimum SSD point
+		ax.scatter(shiftx_min, shifty_min, ssds[idrow, idcol], color='red', s=50, label='Min SSD')
+
+		# Set axis limits
+		ax.set_xlim([-n, n])
+		ax.set_ylim([-n, n])
+		ax.set_zlim([np.min(ssds), np.max(ssds)])
+
+		# Set ticks at every 1 unit
+		ax.set_xticks(np.arange(-n, n+1, 5))
+		ax.set_yticks(np.arange(-n, n+1, 5))
+		ax.set_zticks([])
+
+		# Labels and title
+		ax.set_xlabel('X Shift (pixels)')
+		ax.set_ylabel('Y Shift (pixels)')
+		# ax.set_zlabel('SSD Value')
+		ax.set_title(f'SSD Surface Plot: Image {imnum}')
+		ax.legend()
+		ax.view_init(elev=90, azim=-90)
+		# Color bar for the surface
+		# fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, label='SSD Value')
+
+		plt.show()
+
+
 
 	def plot_softmax_and_confdir(self, distb_vecs, distb_mean_var_SM, elong_ims):
 		"""""
-		xxxxxx
+		Plotting the softmax distribution, confidence directions (when needed), 
+		and distribution points for micropatches
+		Inputs: distribution points for micropatches, softmax distribution, elongated ims
+		Output: 5 plots of confidence directions on SM distb with micropatch distb
 		"""
-		
+
+		num_imgs = self.gnav.im_num
+		fig, axes = plt.subplots(1, num_imgs, figsize=(20, 4 * num_imgs), squeeze=False)
+		axes = axes.flatten()
+		imss = 0
+
+		for i in range(num_imgs):
+			ax = axes[i] if num_imgs > 1 else axes
+
+			# grab correction vectors
+			xs = distb_vecs[i][:,0]
+			ys = distb_vecs[i][:,1]
+			ax.scatter(xs,ys, s=10)
+
+			# Mean and cov
+			mean = distb_mean_var_SM[i]['mu']
+			cov = distb_mean_var_SM[i]['cov']
+			# Draw ellipse
+			if np.any(cov) and not np.isnan(cov).any():
+				vals, vecs = np.linalg.eigh(cov)
+				order = vals.argsort()[::-1]
+				vals, vecs = vals[order], vecs[:, order]
+				angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+				ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				              color='red', alpha=0.3, lw=2, label='Covariance (1σ)')
+				ax.add_patch(ell)
+
+				# Mark the mean
+				ax.scatter(*mean, color='red', s=40, marker='x', label='Mean')
+
+			# Perpendicular DIRECTION 
+			# if i in elong_ims:
+			if any((not isinstance(e, np.ndarray) and i == e) or (isinstance(e, np.ndarray) and i in e) for e in elong_ims):
+				v_perp = elong_ims[imss*2+1]
+				ax.quiver(mean[0], mean[1], v_perp[0], v_perp[1],
+				      angles='xy', scale_units='xy', scale=.5,
+				      color='red', width=0.008, label='Correction Vectors')
+				imss += 1
+				ax.set_title(f"Image {i}: SINGLE conf-dir", fontsize=12)
+			else:
+				ax.set_title(f"Image {i}", fontsize=12)	
+
+
+			# Format
+			# ax.set_title(f"Image {i}: grid = {self.n}x{self.n}", fontsize=12)
+			ax.set_xlim([-6, 6])
+			ax.set_ylim([-6, 6])
+			ax.set_xlabel("X Offset")
+			ax.set_ylabel("Y Offset")
+			ax.set_aspect('equal', adjustable='box')
+			ax.grid(True, linestyle='--', alpha=0.6)
+			# ax.set_title(f"Image {i}")
+
+		# plt.show()
+
+
+
+	def plot_distb_vecs_updated(self):
+		"""
+		Plot all micropatch distribution points, highlighting 
+		confidence for each micropatch
+		Inputs: ****
+		Outputs: 5 plots with blue, yellow, and red points for each micropatch
+		"""
+
+		num_imgs = self.gnav.im_num
+		fig, axes = plt.subplots(1, num_imgs, figsize=(20, 4 * num_imgs), squeeze=False)
+		axes = axes.flatten()
+		imss = 0
+
+		# grab correction vectors
+		distb_vecs = self.gnav.distb_vecs
+		distb_mean_var = self.gnav.distb_mean_var
+
+		for i in range(num_imgs):
+			ax = axes[i] if num_imgs > 1 else axes
+
+			xs = distb_vecs[i][:,0]
+			ys = distb_vecs[i][:,1]
+			for mp in range(len(self.gnav.micro_ps[i])):
+				nonconf_dirs = len(self.gnav.sm_distb_microp_confdir[i][mp]['lam'])
+				if nonconf_dirs == 0:
+					ax.scatter(xs[mp], ys[mp], s=10, color='blue')
+					# print("VERY CONFIDENT")
+				if nonconf_dirs == 1:
+					ax.scatter(xs[mp], ys[mp], s=10, color='orange')
+				if nonconf_dirs == 2:
+					ax.scatter(xs[mp], ys[mp], s=10, color='red')
+					# print("NOT AT ALL CONFIDENT")
+
+			# Mean and cov
+			mean = distb_mean_var[i]['mean']
+			cov = distb_mean_var[i]['cov']
+			# Draw ellipse
+			if np.any(cov) and not np.isnan(cov).any():
+				vals, vecs = np.linalg.eigh(cov)
+				order = vals.argsort()[::-1]
+				vals, vecs = vals[order], vecs[:, order]
+				angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+				ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				ax.add_patch(ell)
+
+				# Mark the mean
+				ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
+
+
+			# Format
+			# ax.set_title(f"Image {i}: grid = {self.n}x{self.n}", fontsize=12)
+			ax.set_xlim([-6, 6])
+			ax.set_ylim([-6, 6])
+			ax.set_xlabel("X Offset")
+			ax.set_ylabel("Y Offset")
+			ax.set_aspect('equal', adjustable='box')
+			ax.grid(True, linestyle='--', alpha=0.6)
+			# ax.set_title(f"Image {i}")
+
+		# plt.show()
+
+
+	def plot_microp_distb_singleIM(self, imnum):
+		"""
+		Plots the distribution of each micropatch for a single image
+		Inputs: Image number 
+		Outputs: plot with cov ellipse for each microp in an image
+		"""
+
+		num_imgs = self.gnav.im_num
+		fig = plt.figure()
+		ax = fig.add_subplot(111)
+
+		# grab correction vectors
+		distb_vecs = self.gnav.distb_vecs[imnum]
+		mean_var_microps = self.gnav.sm_distb_microp[imnum]
+
+		for mp in range(len(self.gnav.micro_ps[imnum])):
+			# Mean and cov
+			mean = distb_vecs[mp]
+			cov = mean_var_microps[mp]['cov']
+			# Draw ellipse
+			if np.any(cov) and not np.isnan(cov).any():
+				vals, vecs = np.linalg.eigh(cov)
+				order = vals.argsort()[::-1]
+				vals, vecs = vals[order], vecs[:, order]
+				angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+				ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				ax.add_patch(ell)
+
+				# Mark the mean
+				ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
+		# Format
+		ax.set_title(f"Image {imnum}: micropatches", fontsize=12)
+		ax.set_xlim([-6, 6])
+		ax.set_ylim([-6, 6])
+		ax.set_xlabel("X Offset")
+		ax.set_ylabel("Y Offset")
+		ax.set_aspect('equal', adjustable='box')
+		ax.grid(True, linestyle='--', alpha=0.6)
+		# ax.set_title(f"Image {i}")
+
+		plt.show()
+
+
+
+	def plot_conf_level_microp(self):
+		"""
+		Plots the distribution of each micropatch for a single image
+		Inputs: Image number 
+		Outputs: plot with cov ellipse for each microp in an image
+		---------------- IN PROGRESS ----------------------
+		"""
+
+		# Number of ims
+		num_imgs = self.gnav.im_num
+		# print(num_imgs)
+
+		# Create figure and axes
+		fig, axes = plt.subplots(num_imgs, 1, figsize=(10,20))
+
+		# Each image
+		for i in range(num_imgs):
+			ax = axes[i] if num_imgs >1 else axes
+
+			# Poly bound of mosaic points 
+			# Corners
+			pts_curr = self.gnav.im_pts_best_guess[i]['pts']
+			corners = self.gnav.im_pts_2d[i]['corners']
+			# Corner indices 
+			idxs = [0, -corners[2], -1, corners[2]-1]
+			# Grab corner points 
+			pts_corners = np.array(pts_curr[idxs])
+			# Create polygon
+			poly = Polygon(pts_corners[:,:2])
+			# Draw base of trapezoid
+			x, y = poly.exterior.xy
+			ax.fill(x,y, alpha=0.3, color='gray', label='Trapezoid')
+
+			# Draw micropatches from corners
+			for j in range(len(self.gnav.micro_ps[i])):
+				corners = self.gnav.micro_ps[i][j]['corners']
+				if corners is None or len(corners) == 0:
+					continue
+
+				# Close polygon by repeating first pt
+				corners_closed = np.vstack([corners, corners[0]])
+				xs, ys = corners_closed[:, 0], corners_closed[:, 1]
+				ax.plot(xs, ys, color='blue', linewidth=0.7)
+
+				# Draw covariance for each micropatch 
+				for mp in range(len(self.gnav.micro_ps[imnum])):
+					# Mean and cov
+					mean = distb_vecs[mp]
+					cov = mean_var_microps[mp]['cov']
+				# 	# Draw ellipse
+				# 	if np.any(cov) and not np.isnan(cov).any():
+				# 		vals, vecs = np.linalg.eigh(cov)
+				# 		order = vals.argsort()[::-1]
+				# 		vals, vecs = vals[order], vecs[:, order]
+				# 		angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				# 		width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+				# 		ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				# 		              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				# 		ax.add_patch(ell)
+
+				# 		# Mark the mean
+				# 		ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
+
+
+
+			ax.set_aspect('equal')
+			ax.set_title(f"Image {i}")
+
+
+		# num_imgs = self.gnav.im_num
+		# fig = plt.figure()
+		# ax = fig.add_subplot(111)
+
+		# # grab correction vectors
+		# distb_vecs = self.gnav.distb_vecs[imnum]
+		# mean_var_microps = self.gnav.sm_distb_microp[imnum]
+
+		# for mp in range(len(self.gnav.micro_ps[imnum])):
+		# 	# Mean and cov
+		# 	mean = distb_vecs[mp]
+		# 	cov = mean_var_microps[mp]['cov']
+		# 	# Draw ellipse
+		# 	if np.any(cov) and not np.isnan(cov).any():
+		# 		vals, vecs = np.linalg.eigh(cov)
+		# 		order = vals.argsort()[::-1]
+		# 		vals, vecs = vals[order], vecs[:, order]
+		# 		angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+		# 		width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+		# 		ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+		# 		              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+		# 		ax.add_patch(ell)
+
+		# 		# Mark the mean
+		# 		ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
+		# # Format
+		# ax.set_title(f"Image {imnum}: micropatches", fontsize=12)
+		# ax.set_xlim([-6, 6])
+		# ax.set_ylim([-6, 6])
+		# ax.set_xlabel("X Offset")
+		# ax.set_ylabel("Y Offset")
+		# ax.set_aspect('equal', adjustable='box')
+		# ax.grid(True, linestyle='--', alpha=0.6)
+		# # ax.set_title(f"Image {i}")
+
+		# plt.show()
+
