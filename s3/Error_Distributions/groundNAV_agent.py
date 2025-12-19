@@ -656,6 +656,31 @@ class gNAV_agent:
 			# Update best guess
 			self.im_pts_best_guess[i] = {'pts': loc_im_pts_guess}
 
+
+	def implement_guess_ind(self, ind_params):
+		"""
+		Implementing new state estimates for INDIVIDUAL patches
+		This way, we can implement an individual truth for each patch
+		Inputs: ind_params: (num_ims x 4), contains scale, rot, trans(x,y)
+		Outputs: transformed points for best guess 
+		"""
+
+		# Create and implement tform for each image
+		for i in range(len(self.images_dict)):
+			params = ind_params[i,:]
+			# print("Check the params:\n", params)
+			tform_guess = self.tform_create(params[2], params[3], 0, 0, 0, params[1])
+			scale = params[0]
+			# Grab transform points 
+			loc_im_pts = self.im_mosaic[i]['pts'].copy() # Need deepcopy?
+			# apply scale
+			loc_im_pts[:,:2] *= scale
+			# apply tform
+			__, loc_im_pts_guess, loc_im_vec_guess = self.unit_vec_tform(loc_im_pts, self.origin_w, tform_guess)
+			# Update best guess
+			self.im_pts_best_guess[i] = {'pts': loc_im_pts_guess}
+
+
 	def update_guess(self, tform_guess, scale):
 		"""
 		Implementing the newest state estimate guess for mosaic
