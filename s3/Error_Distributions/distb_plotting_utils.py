@@ -599,6 +599,7 @@ class microp_distb_plotter:
 			cloud = o3d.geometry.PointCloud()
 			cloud.points = o3d.utility.Vector3dVector(self.gnav.ref_pts)
 			cloud.colors = o3d.utility.Vector3dVector(self.gnav.ref_rgb)
+			vis.add_geometry(cloud)
 
 		# Create point cloud for image points
 		for i in range(len(self.gnav.images_dict)):
@@ -607,6 +608,70 @@ class microp_distb_plotter:
 				cloud_micro.points = o3d.utility.Vector3dVector(self.gnav.micro_ps[i][j]['pts'])
 				cloud_micro.colors = o3d.utility.Vector3dVector(self.gnav.micro_ps[i][j]['color_g'])
 				vis.add_geometry(cloud_micro)
+
+
+		# Plot covariances 
+		for imnum in range(len(self.gnav.images_dict)):
+			distb_vecs = self.gnav.distb_vecs[imnum]
+			mean_var_microps = self.gnav.sm_distb_microp[imnum]
+
+			for mp in range(len(self.gnav.micro_ps[imnum])):
+				# Mean and cov
+				mean_pts = self.gnav.micro_ps[imnum][mp]['pts']
+				mean = mean_pts.mean(axis=0)
+				cov = mean_var_microps[mp]['cov']
+				# Draw ellipse
+				if np.any(cov) and not np.isnan(cov).any():
+					vals, vecs = np.linalg.eigh(cov)
+					order = vals.argsort()[::-1]
+					vals, vecs = vals[order], vecs[:, order]
+					radii = np.sqrt(vals)
+					angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+					width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+					# Create sphere
+					sph = o3d.geometry.TriangleMesh.create_sphere(radius=1, resolution=20)
+					sph.compute_vertex_normals()
+					V = np.asarray(sph.vertices)
+					# print(mean)
+					if cov.shape == (2,2):
+						z_radius = 0.05 * max(radii) # ADJUST thickness
+
+						V[:,0] *= radii[0]
+						V[:,1] *= radii[1]
+						V[:,2] *= z_radius 
+
+						sph.vertices = o3d.utility.Vector3dVector(V)
+
+						# Build 3x3 tormat
+						R = np.eye(3)
+						R[:2, :2] = vecs
+
+						sph.rotate(R, center=(0,0,0))
+
+						# Translate to mean (expects mean is length-3; if you have 2D mean, pad with 0)
+						mean3 = np.array([mean[0], mean[1], mean[2] if len(mean) > 2 else 0.0])
+						sph.translate(mean3)
+
+						# COLOR BASED ON CONFIDENCE
+						print(self.gnav.sm_distb_microp_confdir[imnum][mp]['lam'])
+						if self.gnav.sm_distb_microp_confdir[imnum][mp]['lam'] != []:
+							sph.paint_uniform_color([1.0,0.0,0.0])
+						else:
+							sph.paint_uniform_color([0.0, 1.0, 0.0])
+
+						vis.add_geometry(sph)
+
+
+				
+
+				# 	ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				# 	              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				# 	ax.add_patch(ell)
+
+				# 	# Mark the mean
+				# 	ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
 
 
 
