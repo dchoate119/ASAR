@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import cv2
 from shapely.geometry import Polygon, box, Point
+import open3d as o3d
 
 class microp_distb_plotter:
 	""" 
@@ -568,4 +569,49 @@ class microp_distb_plotter:
 		# # ax.set_title(f"Image {i}")
 
 		# plt.show()
+
+
+
+
+	def phys_microp_conf(self, sat_map=True):
+		"""
+		Physical error plot for micropatches and confidence directions
+		Input: gnav class, satellite map 
+		Output: open3d plot with micropatches, with covariance ellipses for each micropatch
+		Yellow covariance ellipse for uncertainty, blue for confidence
+		"""
+
+		vis = o3d.visualization.Visualizer()
+		vis.create_window(window_name = "Physical Error Plot")
+
+		# Create origin at axis
+		axis_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10)
+		vis.add_geometry(axis_origin)
+
+		# # Plot each patch 
+		# for i in range(len(self.gnav.images_dict)):
+		# 	cloud = o3d.geometry.PointCloud()
+		# 	cloud.points = o3d.utility.Vector3dVector(self.gnav.im_pts_best_guess[i]['pts'])
+		# 	cloud.colors = o3d.utility.Vector3dVector(self.gnav.im_mosaic[i]['color_g'])
+		# 	vis.add_geometry(cloud)
+
+		if sat_map == True:
+			cloud = o3d.geometry.PointCloud()
+			cloud.points = o3d.utility.Vector3dVector(self.gnav.ref_pts)
+			cloud.colors = o3d.utility.Vector3dVector(self.gnav.ref_rgb)
+
+		# Create point cloud for image points
+		for i in range(len(self.gnav.images_dict)):
+			for j in range(len(self.gnav.micro_ps[i])):
+				cloud_micro = o3d.geometry.PointCloud()
+				cloud_micro.points = o3d.utility.Vector3dVector(self.gnav.micro_ps[i][j]['pts'])
+				cloud_micro.colors = o3d.utility.Vector3dVector(self.gnav.micro_ps[i][j]['color_g'])
+				vis.add_geometry(cloud_micro)
+
+
+
+		# Run and destroy 
+		vis.run()
+		vis.destroy_window()
+
 
