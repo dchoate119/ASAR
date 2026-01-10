@@ -412,6 +412,69 @@ class microp_distb_plotter:
 		# plt.show()
 
 
+
+	def plot_distb_vecs_BLUE(self):
+		"""
+		Plot all micropatch distribution points
+		Covariance ONLY using the blue points, as opposed to all points 
+		Inputs: ****
+		Outputs: 5 plots with blue, yellow, and red points for each micropatch, covariance with just blue points
+		"""
+
+		num_imgs = self.gnav.im_num
+		fig, axes = plt.subplots(1, num_imgs, figsize=(20, 4 * num_imgs), squeeze=False)
+		axes = axes.flatten()
+		imss = 0
+
+		# grab correction vectors
+		distb_vecs = self.gnav.distb_vecs_blue
+		distb_mean_var = self.gnav.distb_mean_var_blue
+
+		for i in range(num_imgs):
+			ax = axes[i] if num_imgs > 1 else axes
+
+			xs = distb_vecs[i][:,0]
+			ys = distb_vecs[i][:,1]
+			ax.scatter(xs, ys, s=10, color='blue')
+					
+			# Mean and cov
+			mean = distb_mean_var[i]['mean']
+			cov = distb_mean_var[i]['cov']
+			# Draw ellipse
+			if np.any(cov) and not np.isnan(cov).any():
+				vals, vecs = np.linalg.eigh(cov)
+				order = vals.argsort()[::-1]
+				vals, vecs = vals[order], vecs[:, order]
+				angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+
+				ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				ax.add_patch(ell)
+
+				# Mark the mean
+				ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+
+
+
+			# Format
+			# ax.set_title(f"Image {i}: grid = {self.n}x{self.n}", fontsize=12)
+			ax.set_xlim([-6, 6])
+			ax.set_ylim([-6, 6])
+			ax.set_xlabel("X Offset")
+			ax.set_ylabel("Y Offset")
+			ax.set_aspect('equal', adjustable='box')
+			ax.grid(True, linestyle='--', alpha=0.6)
+			# ax.set_title(f"Image {i}")
+
+		# plt.show()
+
+
+
+
+
+
+
 	def plot_microp_distb_singleIM(self, imnum):
 		"""
 		Plots the distribution of each micropatch for a single image
