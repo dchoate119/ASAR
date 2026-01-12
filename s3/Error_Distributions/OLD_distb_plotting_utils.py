@@ -1,4 +1,4 @@
-# Utilities file for distribution visualizations 
+# OLD Utilities file for distribution visualizations 
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,9 +18,8 @@ class microp_distb_plotter:
 	- SSD surface plots: surface plot for SSD confidence level
 	- Softmax and conf dir: confidence directions for single-dir mps
 	"""
-	def __init__(self, gnav, mpa, n, n_ssd):
-		self.gnav = gnav # Gnav agent we need CLASS
-		self.mpa = mpa # Micropatch analysis CLASS
+	def __init__(self, gnav, n, n_ssd):
+		self.gnav = gnav # Gnav agent we need 
 		self.n = n # Microp grid size 
 		self.n_ssd = n_ssd # ssd shift size 
 
@@ -69,7 +68,7 @@ class microp_distb_plotter:
 				ax.plot(xs, ys, color='blue', linewidth=0.7)
 
 			# Draw CORRECTION VECS for each microp
-			pts_corr = self.mpa.distb_pts[i]
+			pts_corr = self.gnav.distb_pts[i]
 			mps = len(self.gnav.ssds_curr_micro[i])
 			# Split into base and end points
 			base = pts_corr[:mps]
@@ -121,7 +120,7 @@ class microp_distb_plotter:
 			ax.scatter(xs,ys, s=10)
 
 			# Mean and cov
-			mean = distb_mean_var[i]['mu']
+			mean = distb_mean_var[i]['mean']
 			cov = distb_mean_var[i]['cov']
 			# Draw ellipse
 			if np.any(cov) and not np.isnan(cov).any():
@@ -148,12 +147,11 @@ class microp_distb_plotter:
 			ax.grid(True, linestyle='--', alpha=0.6)
 			# ax.set_title(f"Image {i}")
 
-
 	def plot_softmax_microp_COMP(self, distb_vecs, distb_mean_var, distb_mean_var_SM):
 		"""
 		Plot comparison between softmax mean and variance of full patch, ...
 		and micropatch distribution
-		Input: distribution vectors, mean and variance distb of micropatches, mean and variance distb of FP
+		Input: ... CHECK THESE
 		Output 5 plots with distibution of microp pts and ellipse of full patch cov
 		"""
 		num_imgs = self.gnav.im_num
@@ -171,7 +169,7 @@ class microp_distb_plotter:
 			ax.scatter(xs,ys, s=10)
 
 			# Mean and cov
-			mean = distb_mean_var[i]['mu']
+			mean = distb_mean_var[i]['mean']
 			cov = distb_mean_var[i]['cov']
 			# Draw ellipse
 			if np.any(cov) and not np.isnan(cov).any():
@@ -230,8 +228,6 @@ class microp_distb_plotter:
         #         loc='upper right',
         #         frameon=True)
 
-
-
 	def ssd_surface_plots(self, ssds, imnum, n):
 		"""
 		Surface plot visualizations for SSD confidence level 
@@ -286,7 +282,7 @@ class microp_distb_plotter:
 
 	def plot_softmax_and_confdir(self, distb_vecs, distb_mean_var_SM, elong_ims):
 		"""""
-		Plotting the softmax distribution for FULL IMAGE, confidence directions (when needed), 
+		Plotting the softmax distribution, confidence directions (when needed), 
 		and distribution points for micropatches
 		Inputs: distribution points for micropatches, softmax distribution, elongated ims
 		Output: 5 plots of confidence directions on SM distb with micropatch distb
