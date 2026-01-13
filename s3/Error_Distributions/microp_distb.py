@@ -5,10 +5,6 @@
 
 import numpy as np
 
-
-
-
-
 class microp_distb:
 	"""
 	Class for distribution analysis and adjustments 
@@ -237,6 +233,7 @@ class microp_distb:
 				# ------ Determine confidence directions -------
 				# Assume 2 to start
 				conf_dirs = 2
+				self.sm_distb_conf[imnum][mp]['cdirs'] = conf_dirs
 				eigvals, eigvecs = np.linalg.eigh(cov)
 				# print('\nEigenvalues:\n', eigvals)
 				# print('Eigenvectors:\n', eigvecs)
@@ -249,11 +246,45 @@ class microp_distb:
 
 				v_small = eigvecs[:, idx[0]]   # more stable direction
 				v_large = eigvecs[:, idx[-1]]  # less stable direction
-				print("More stable:\n", v_small)
-				print("Less stable:\n", v_large)
+				# print("More stable:\n", v_small)
+				# print("Less stable:\n", v_large)
+				# ALWAYS LISTED SMALL THEN LARGE
+				self.sm_distb_conf[imnum][mp]['eigvals'] = np.array([lam_small, lam_large])
+				# print('EIGVALS:', self.sm_distb_conf[imnum][mp]['eigvals'][0])
+
+				# Normalize eigenvectors
+
+				self.sm_distb_conf[imnum][mp]['eigvecs'] = np.array([v_small, v_large])
 
 				# --- Check large eigenvalue ---
-				print("GOT HERE")
+				if lam_large > self.T:
+					num_mp_cd += 1
+					self.sm_distb_conf[imnum][mp]['cdirs'] -= 1
+					# print(f'Image {imnum}, MP {mp} has 1 less confident direction.')
+
+				if lam_small > self.T:
+					num_mp_cd2 += 1
+					self.sm_distb_conf[imnum][mp]['cdirs'] -= 1
+					# print(f'Image {imnum}, MP {mp} has NO confident direction.')
+
+				# print("GOT HERE") 
+		print("Total micropatches:", total_mps)
+		print("Micropatches with less than 2 confidence directions:", num_mp_cd)
+		print("Micropatches with less than NO confidence directions:", num_mp_cd2)
+
+
+
+	def blue_isolation(self):
+		""" 
+		Isolation of blue (2-directional confidence) points with new mean and cov
+			of just these points 
+		Input: number of confident directions (0, 1, or 2)
+		Output: new variable (mpa.distb_vecs_blue) with mean and covariance of just blue pts
+		"""
+
+		self.distb_vecs_blue = [[] for _ in range(self.im_num)]
+
+		#******************************************
 
 
 

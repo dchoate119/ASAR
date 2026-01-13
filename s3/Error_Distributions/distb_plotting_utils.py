@@ -364,8 +364,8 @@ class microp_distb_plotter:
 		imss = 0
 
 		# grab correction vectors
-		distb_vecs = self.gnav.distb_vecs
-		distb_mean_var = self.gnav.distb_mean_var
+		distb_vecs = self.mpa.distb_vecs
+		distb_mean_var = self.mpa.full_mp_mean_var # Distribution of ALL micropatches per image
 
 		for i in range(num_imgs):
 			ax = axes[i] if num_imgs > 1 else axes
@@ -373,18 +373,18 @@ class microp_distb_plotter:
 			xs = distb_vecs[i][:,0]
 			ys = distb_vecs[i][:,1]
 			for mp in range(len(self.gnav.micro_ps[i])):
-				nonconf_dirs = len(self.gnav.sm_distb_microp_confdir[i][mp]['lam'])
-				if nonconf_dirs == 0:
+				conf_dirs = self.mpa.sm_distb_conf[i][mp]['cdirs']
+				if conf_dirs == 2:
 					ax.scatter(xs[mp], ys[mp], s=10, color='blue')
 					# print("VERY CONFIDENT")
-				if nonconf_dirs == 1:
+				if conf_dirs == 1:
 					ax.scatter(xs[mp], ys[mp], s=10, color='orange')
-				if nonconf_dirs == 2:
+				if conf_dirs == 0:
 					ax.scatter(xs[mp], ys[mp], s=10, color='red')
 					# print("NOT AT ALL CONFIDENT")
 
 			# Mean and cov
-			mean = distb_mean_var[i]['mean']
+			mean = distb_mean_var[i]['mu']
 			cov = distb_mean_var[i]['cov']
 			# Draw ellipse
 			if np.any(cov) and not np.isnan(cov).any():
