@@ -283,9 +283,33 @@ class microp_distb:
 		"""
 
 		self.distb_vecs_blue = [[] for _ in range(self.im_num)]
+		self.full_mp_mean_var_BLUE = [{} for _ in range(self.im_num)]
+		# Grab error vectors for blue points (2 conf dirs)
+		for imnum in range(self.im_num):
+			for mp in range(len(self.gnav.micro_ps[imnum])):
+				# print("IMAGE:", imnum, "MP:", mp)
+				conf_dirs = self.sm_distb_conf[imnum][mp]['cdirs']
+				if conf_dirs == 2:
+					pt = self.distb_vecs[imnum][mp]
+					self.distb_vecs_blue[imnum].append(pt)
+		# Numpy organization 
+		self.distb_vecs_blue = [
+		np.vstack(pts) if len(pts) > 0 else np.empty((0,2)) for pts in self.distb_vecs_blue
+		]
+		# print(self.distb_vecs_blue)
 
-		#******************************************
-
-
-
-
+		# Mean and variance 
+		for imnum in range(self.im_num):
+			cor_vecs = self.distb_vecs_blue[imnum]
+			if cor_vecs.shape[0] > 1:
+				# Mean and variacne 
+				x_bar = np.mean(cor_vecs[:,0])
+				y_bar = np.mean(cor_vecs[:,1])
+				self.full_mp_mean_var_BLUE[imnum]['mu'] = np.array([x_bar, y_bar])
+				cov_matrix = np.cov(cor_vecs.T)
+				# print("Numpy cov matrix:\n", cov_matrix)
+				self.full_mp_mean_var_BLUE[imnum]['cov'] = cov_matrix
+			    
+			else:
+				self.full_mp_mean_var_BLUE[imnum]['mu'] = cor_vecs[0] if cor_vecs.shape[0] == 1 else np.array([0,0])
+				self.full_mp_mean_var_BLUE[imnum]['cov'] = np.zeros((2,2))

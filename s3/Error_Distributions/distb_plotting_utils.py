@@ -431,8 +431,8 @@ class microp_distb_plotter:
 		imss = 0
 
 		# grab correction vectors
-		distb_vecs = self.gnav.distb_vecs_blue
-		distb_mean_var = self.gnav.distb_mean_var_blue
+		distb_vecs = self.mpa.distb_vecs_blue
+		distb_mean_var = self.mpa.full_mp_mean_var_BLUE
 
 		for i in range(num_imgs):
 			ax = axes[i] if num_imgs > 1 else axes
@@ -442,7 +442,7 @@ class microp_distb_plotter:
 			ax.scatter(xs, ys, s=10, color='blue')
 					
 			# Mean and cov
-			mean = distb_mean_var[i]['mean']
+			mean = distb_mean_var[i]['mu']
 			cov = distb_mean_var[i]['cov']
 			# Draw ellipse
 			if np.any(cov) and not np.isnan(cov).any():
