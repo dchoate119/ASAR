@@ -477,7 +477,7 @@ class microp_distb_plotter:
 
 	def plot_distb_vecs_w_singleDIR(self):
 		"""
-		Plot all micropatch distribution points
+		Plot all micropatch distribution points, along with duplicate yellows in projection dir
 		Adding dotted lines to represent uncertainty of single direction patches 
 		Inputs: ****
 		Outputs: 5 plots with blue, yellow, and red points for each micropatch, covariance, and
@@ -489,48 +489,80 @@ class microp_distb_plotter:
 		axes = axes.flatten()
 		imss = 0
 
-		# # grab correction vectors
-		# distb_vecs = self.gnav.distb_vecs_blue
-		# distb_mean_var = self.gnav.distb_mean_var_blue
+		# grab correction vectors
+		distb_vecs = self.mpa.distb_vecs_yellow
+		distb_mean_var = self.mpa.full_mp_mean_var # Variance of all micropatches
 
-		# for i in range(num_imgs):
-		# 	ax = axes[i] if num_imgs > 1 else axes
+		for i in range(num_imgs):
+			ax = axes[i] if num_imgs > 1 else axes
 
-		# 	xs = distb_vecs[i][:,0]
-		# 	ys = distb_vecs[i][:,1]
-		# 	ax.scatter(xs, ys, s=10, color='blue')
+			xs = distb_vecs[i][:,0]
+			ys = distb_vecs[i][:,1]
+			ax.scatter(xs, ys, s=10, color='orange')
+
+			# *********** MINOR AXIS LINE  *********
+			for mp in range(len(self.gnav.micro_ps[i])):
+				if self.mpa.sm_distb_conf[i][mp]['cdirs'] == 1:
+					# minor axis
+					r_minor = self.mpa.sm_distb_conf[i][mp]['eigvecs'][0]
+					vec = self.mpa.distb_vecs[i][mp]
+					L_dist = 3 # 2 unit line
+					L_dist_half = L_dist/2
+					# plot it
+					p1 = vec - L_dist_half*r_minor
+					p2 = vec + L_dist_half*r_minor
+					# ax.plot([p1[0], p2[0]], [p1[1], p2[1]], linestyle=':', linewidth=2)
+					# print(vec)
+					# print(r_minor)
+			# **************
+
+			# ****** PROJECTION POINTS ***********
+			proj_pts = self.mpa.projection_yellow[i]
+			vecs = self.mpa.distb_vecs_yellow[i]
+			# print(proj_pts)
+			xs = proj_pts[:,0]
+			ys = proj_pts[:,1]
+			ax.scatter(xs, ys, s = 10, color='black')
+			for l in range(len(vecs)):
+				p1 = vecs[l]
+				p2 = proj_pts[l]
+				# ax.plot([p1[0], p2[0]], [p1[1], p2[1]], linestyle=':', linewidth=2, color='black')
+			# ************************************
 					
-		# 	# Mean and cov
-		# 	mean = distb_mean_var[i]['mean']
-		# 	cov = distb_mean_var[i]['cov']
-		# 	# Draw ellipse
-		# 	if np.any(cov) and not np.isnan(cov).any():
-		# 		vals, vecs = np.linalg.eigh(cov)
-		# 		order = vals.argsort()[::-1]
-		# 		vals, vecs = vals[order], vecs[:, order]
-		# 		angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
-		# 		width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
+			# Mean and cov
+			mean = distb_mean_var[i]['mu']
+			cov = distb_mean_var[i]['cov']
+			# Draw ellipse
+			if np.any(cov) and not np.isnan(cov).any():
+				vals, vecs = np.linalg.eigh(cov)
+				order = vals.argsort()[::-1]
+				vals, vecs = vals[order], vecs[:, order]
+				angle = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+				width, height = 2 * np.sqrt(vals)  # 1-sigma ellipse
 
-		# 		ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
-		# 		              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
-		# 		ax.add_patch(ell)
+				ell = Ellipse(xy=mean, width=width, height=height, angle=angle,
+				              color='blue', alpha=0.1, lw=2, label='Covariance (1σ)')
+				ax.add_patch(ell)
 
-		# 		# Mark the mean
-		# 		ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
+				# Mark the mean
+				ax.scatter(*mean, color='blue', s=40, marker='x', label='Mean')
 
 
 
-		# 	# Format
-		# 	# ax.set_title(f"Image {i}: grid = {self.n}x{self.n}", fontsize=12)
-		# 	ax.set_xlim([-6, 6])
-		# 	ax.set_ylim([-6, 6])
-		# 	ax.set_xlabel("X Offset")
-		# 	ax.set_ylabel("Y Offset")
-		# 	ax.set_aspect('equal', adjustable='box')
-		# 	ax.grid(True, linestyle='--', alpha=0.6)
-		# 	# ax.set_title(f"Image {i}")
+			# Format
+			ax.set_title(f"Image {i}: grid = {self.n}x{self.n}", fontsize=12)
+			ax.set_xlim([-6, 6])
+			ax.set_ylim([-6, 6])
+			ax.set_xlabel("X Offset")
+			ax.set_ylabel("Y Offset")
+			ax.set_aspect('equal', adjustable='box')
+			ax.grid(True, linestyle='--', alpha=0.6)
+			# ax.set_title(f"Image {i}")
 
-		# # plt.show()
+		# plt.show()
+
+
+
 
 
 	def plot_microp_distb_singleIM(self, imnum):
@@ -682,7 +714,7 @@ class microp_distb_plotter:
 		# # Format
 		# ax.set_title(f"Image {imnum}: micropatches", fontsize=12)
 		# ax.set_xlim([-6, 6])
-		# ax.set_ylim([-6, 6])
+		# ax.set_yIsolatelim([-6, 6])
 		# ax.set_xlabel("X Offset")
 		# ax.set_ylabel("Y Offset")
 		# ax.set_aspect('equal', adjustable='box')
@@ -733,8 +765,9 @@ class microp_distb_plotter:
 
 		# Plot covariances 
 		for imnum in range(len(self.gnav.images_dict)):
-			distb_vecs = self.gnav.distb_vecs[imnum]
-			mean_var_microps = self.gnav.sm_distb_microp[imnum]
+			distb_vecs = self.mpa.distb_vecs[imnum]
+			# mean_var_microps = self.gnav.sm_distb_microp[imnum]
+			mean_var_microps = self.mpa.sm_distb_conf[imnum] # CHANGING TO NEW CLASS
 
 			for mp in range(len(self.gnav.micro_ps[imnum])):
 				# Mean and cov
@@ -775,11 +808,14 @@ class microp_distb_plotter:
 						sph.translate(mean3)
 
 						# COLOR BASED ON CONFIDENCE
-						print(self.gnav.sm_distb_microp_confdir[imnum][mp]['lam'])
-						if self.gnav.sm_distb_microp_confdir[imnum][mp]['lam'] != []:
-							sph.paint_uniform_color([1.0,0.0,0.0])
+						# print(self.gnav.sm_distb_microp_confdir[imnum][mp]['lam'])
+						cdirs = self.mpa.sm_distb_conf[imnum][mp]['cdirs']
+						if cdirs == 2:
+							sph.paint_uniform_color([0, 1.0, 0.0])
+						elif cdirs == 1:
+							sph.paint_uniform_color([1.0, 1.0, 0])
 						else:
-							sph.paint_uniform_color([0.0, 1.0, 0.0])
+							sph.paint_uniform_color([1.0, 0, 0.0])
 
 						vis.add_geometry(sph)
 

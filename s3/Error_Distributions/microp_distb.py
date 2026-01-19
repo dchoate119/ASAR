@@ -313,3 +313,39 @@ class microp_distb:
 			else:
 				self.full_mp_mean_var_BLUE[imnum]['mu'] = cor_vecs[0] if cor_vecs.shape[0] == 1 else np.array([0,0])
 				self.full_mp_mean_var_BLUE[imnum]['cov'] = np.zeros((2,2))
+
+
+	def yellow_minor(self): 
+		"""
+		Working to generate a projection in the minor axis of yellow points
+		Input:
+		Output: mpa.distb_vecs_yellow, mpa.projection_yellow
+		"""
+		tot_yellow = 0
+		self.distb_vecs_yellow = [[] for _ in range(self.im_num)]
+		self.projection_yellow = [[] for _ in range(self.im_num)]
+		for imnum in range(self.im_num):
+			for mp in range(len(self.gnav.micro_ps[imnum])):
+				conf_dirs = self.sm_distb_conf[imnum][mp]['cdirs']
+				# print(conf_dirs)
+				if conf_dirs == 1: # YELLOW
+					tot_yellow += 1
+					vec = self.distb_vecs[imnum][mp]
+					self.distb_vecs_yellow[imnum].append(vec)
+					# GENERATE PROJECTION 
+					r_minor = self.sm_distb_conf[imnum][mp]['eigvecs'][0]
+					# print("Error vector:", vec)
+					# print("Minor axis eigenvector", r_minor)
+					E_minor = np.dot(vec, r_minor)
+					E_proj = E_minor * r_minor
+					# print("Projection of error vector on minor axis:", E_proj)
+					self.projection_yellow[imnum].append(E_proj)
+
+
+		# Reorg
+		self.distb_vecs_yellow = [
+		np.vstack(pts) if len(pts) > 0 else np.empty((2,0)) for pts in self.distb_vecs_yellow
+		]
+		self.projection_yellow = [
+		np.vstack(pts) if len(pts) > 0 else np.empty((2,0)) for pts in self.projection_yellow
+		]
