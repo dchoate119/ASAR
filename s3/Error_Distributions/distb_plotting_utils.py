@@ -232,7 +232,7 @@ class microp_distb_plotter:
 
 
 
-	def ssd_surface_plots(self, ssds, imnum, n):
+	def ssd_surface_plots(self, ssds, imnum, n, method='ssds'):
 		"""
 		Surface plot visualizations for SSD confidence level 
 		Inputs: Image number, ssds, n (shift length)
@@ -244,10 +244,17 @@ class microp_distb_plotter:
 		y = np.linspace(-n,n, 2*n+1)
 		Y, X = np.meshgrid(x,y)
 
-		idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
-		shiftx_min = idrow - n
-		shifty_min = idcol - n
-		print(f"BEST SHIFT for image {imnum}:", shiftx_min, shifty_min)
+		if method == 'probs':
+			idrow, idcol = np.unravel_index(np.argmax(ssds), ssds.shape)
+			shiftx_min = idrow - n # THESE ARE ACTUALLY THE MAX
+			shifty_min = idcol - n # THESE ARE ACTUALLY THE MAX
+			print(f"Highest probability shift for image {imnum}:", shiftx_min, shifty_min)
+		else:
+			idrow, idcol = np.unravel_index(np.argmin(ssds), ssds.shape)
+			shiftx_min = idrow - n
+			shifty_min = idcol - n
+			print(f"BEST SHIFT for image {imnum}:", shiftx_min, shifty_min)
+
 		# print("BEST SSD =", ssds[idrow, idcol])
 
 		# Plot SSD as a surface
@@ -274,7 +281,10 @@ class microp_distb_plotter:
 		ax.set_xlabel('X Shift (pixels)')
 		ax.set_ylabel('Y Shift (pixels)')
 		# ax.set_zlabel('SSD Value')
-		ax.set_title(f'SSD Surface Plot: Image {imnum}')
+		if method == 'probs':
+			ax.set_title(f'Discretized probability for image {imnum}')
+		else:
+			ax.set_title(f'SSD Surface Plot: Image {imnum}')
 		ax.legend()
 		ax.view_init(elev=90, azim=-90)
 		# Color bar for the surface
