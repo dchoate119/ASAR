@@ -265,7 +265,11 @@ class microp_distb_plotter:
 		surf = ax.plot_surface(X, Y, ssds, cmap='viridis', edgecolor='none')
 
 		# Highlight minimum SSD point
-		ax.scatter(shiftx_min, shifty_min, ssds[idrow, idcol], color='red', s=50, label='Min SSD')
+		if method == 'probs':
+			ax.scatter(shiftx_min, shifty_min, ssds[idrow, idcol], color='red', s=50, label='Max prob')
+			ax.scatter(0, 0, ssds[n,n]+.001, color='black', s=50, label=f'Truth: {0,0}')
+		else:
+			ax.scatter(shiftx_min, shifty_min, ssds[idrow, idcol], color='red', s=50, label='Min SSD')
 
 		# Set axis limits
 		ax.set_xlim([-n, n])
