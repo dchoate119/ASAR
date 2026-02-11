@@ -12,6 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from shapely.geometry import Polygon, box, Point
 from shapely.affinity import rotate
 import copy
+import math
 
 
 from colmapParsingUtils import *
