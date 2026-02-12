@@ -472,6 +472,8 @@ class gNAV_agent:
 		rows = int(len(self.images_dict)/5)
 		# Loop through each image
 		for imnum in range(len(self.images_dict)):
+			# if imnum == 0:
+			# 	last_ax = plt.subplot(rows,5,imnum+1) # CHANGED 
 			plt.subplot(rows,5,imnum+1)
 			# Grab parameters 
 			x, y, width, height = self.mosaic_params[imnum]
@@ -480,14 +482,26 @@ class gNAV_agent:
 			# Grab correct image based on number indicator 
 			im_gnd_plt = self.images_dict[imnum]
 			im_gnd_plt = cv2.cvtColor(im_gnd_plt, cv2.COLOR_BGR2RGB)
+			# TESTING SOMETHING
+			# im_gnd_plt = cv2.cvtColor(im_gnd_plt, cv2.COLOR_BGR2GRAY)
 			# print(im_gnd_plt)
 
 			# Plot 
 			plt.imshow(im_gnd_plt)
+			# TESTING SOMETHING
+			# plt.imshow(im_gnd_plt, cmap='gray')
 			plt.gca().add_patch(rect)
 			plt.axis("off")
 
-		# Show plot 
+		# fig = plt.gcf() # CHANGED
+
+		# # Show plot 
+		# plt.savefig(
+		# 	'hash_im_box.png',
+		# 	dpi=300,
+		# 	bbox_inches=last_ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+		# )
+
 		plt.show()
 
 	def unit_vec_c(self, imnum):
