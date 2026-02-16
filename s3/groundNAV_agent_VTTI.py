@@ -43,8 +43,6 @@ class gNAV_agent:
 		self.ssds_curr_micro = {}
 		# self.ssds1_curr = {}
 		self.im_num = len(self.images_dict)
-		# Ground plane points - chosen MANUALLY
-		self.pts_gnd_idx = np.array([25440, 25450, 25441, 25449, 25442, 25445, 103922, 103921, 103919, 103920])
 
 	def read_colmap_data(self):
 		self.images_c = read_images_text(self.images_c_loc)
@@ -96,13 +94,15 @@ class gNAV_agent:
 			self.read_image_files(image_path,i)
 			# Grab file name on end of path
 			filename = image_path.split('/')[-1]
-			# print(filename)
+			print("FILENAME:",filename)
 			
 			# Look up corresponding ID
 			for img_c_id, img_c in self.images_c.items():
 				if img_c.name.startswith(filename):
 					im_ids[i] = img_c_id
-					break
+					# break
+				else:
+					print("Couldnt find?")
 
 		self.im_ids = im_ids
 
@@ -262,6 +262,7 @@ class gNAV_agent:
 		Input: ground plane points 
 		Output: reference frame transformation matrix
 		"""
+		self.pts_gnd_idx = pts_gnd_idx
 		self.origin_w = np.array([0,0,0])
 		self.pts_gnd = self.scene_pts[self.pts_gnd_idx]
 
@@ -304,7 +305,7 @@ class gNAV_agent:
 
 		# Translation from ground to desired height 
 		x = 0
-		y = -6
+		y = 0
 		z = -1
 		yaw = np.deg2rad(0)
 		# Translation 2
