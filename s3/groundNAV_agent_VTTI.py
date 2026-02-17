@@ -94,15 +94,15 @@ class gNAV_agent:
 			self.read_image_files(image_path,i)
 			# Grab file name on end of path
 			filename = image_path.split('/')[-1]
-			print("FILENAME:",filename)
+			# print("FILENAME:",filename)
 			
 			# Look up corresponding ID
 			for img_c_id, img_c in self.images_c.items():
 				if img_c.name.startswith(filename):
 					im_ids[i] = img_c_id
-					# break
-				else:
-					print("Couldnt find?")
+					break
+				# else:
+				# 	# print("Couldnt find?")
 
 		self.im_ids = im_ids
 
@@ -540,7 +540,9 @@ class gNAV_agent:
 		Py = -pts_loc[..., 1] + shape_im_y / 2  # Shape (H, W)
 
 		# Apply final coordinate transformations
-		Px, Py = -Py, -Px  # Swap and negate as per coordinate system
+		# Px, Py = -Py, -Px  # Swap and negate as per coordinate system
+		# trying something
+		Px, Py = Px, Py
 
 		# Compute magnitude of vectors
 		mag = np.sqrt(Px**2 + Py**2 + self.focal**2)  # Shape (H, W)
