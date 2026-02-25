@@ -279,7 +279,7 @@ class gNAV_agent:
 
 
 		# Define coordinate frame 
-		z_bar = self.grav_vec
+		z_bar = -self.grav_vec # CHANGED SIGN *****
 		P1, P2 = self.scene_pts[pts_gnd_idx[0],:], self.scene_pts[pts_gnd_idx[5],:]
 		v = P2-P1
 
@@ -529,15 +529,20 @@ class gNAV_agent:
 		"""
 		# Get pixel locations and RGB values
 		pts_loc = self.im_pts_2d[imnum]['pts']  # Shape (H, W, 2)
-		# print(pts_loc)
+		# print(f'PTS location: \n{pts_loc}')
 		pts_rgb = self.im_pts_2d[imnum]['rgbc']  # Shape (H, W, 3)
 		im_imnum = self.images_dict[imnum]
 
 		shape_im_y, shape_im_x = im_imnum.shape[:2]
+		# print(shape_im_y, shape_im_x)
+		# print("Y, X")
 
 		# Compute shifted pixel coordinates
-		Px = pts_loc[..., 0] - shape_im_x / 2  # Shape (H, W)
-		Py = -pts_loc[..., 1] + shape_im_y / 2  # Shape (H, W)
+		# Px = pts_loc[..., 0] - shape_im_x / 2  # Shape (H, W)
+		# Py = -pts_loc[..., 1] + shape_im_y / 2  # Shape (H, W)
+		Px = pts_loc[..., 0] - shape_im_x / 2  # Shape (H, W) 
+		Py = pts_loc[..., 1] - shape_im_y / 2  # Shape (H, W)
+		
 
 		# Apply final coordinate transformations
 		# Px, Py = -Py, -Px  # Swap and negate as per coordinate system
