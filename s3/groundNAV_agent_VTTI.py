@@ -13,7 +13,7 @@ from shapely.geometry import Polygon, box, Point
 from shapely.affinity import rotate
 import copy
 import math
-from pathlib import Path
+from pathlib import Path as pth
 import re
 
 
@@ -65,7 +65,7 @@ class gNAV_agent:
 		# for im_fn in self.imss:
 		# 	self.images.append(im_fn)
 
-		im_dir = Path(self.imss)
+		im_dir = pth(self.imss) # EDITED***
 
 		if not im_dir.exists() or not im_dir.is_dir():
 			raise ValueError(f"self.imss must be an existing foler path. Got: {self.imss}")
@@ -73,7 +73,7 @@ class gNAV_agent:
 		files = [p for p in im_dir.iterdir() if p.is_file()]
 
 		# sorting
-		def frame_key(p: Path):
+		def frame_key(p: pth): # EDITED***
 			m = re.search(r"\d+", p.stem)
 			if m is None:
 				raise ValueError(f"No frame number found in filename: {p.name}")
@@ -706,7 +706,8 @@ class gNAV_agent:
 		"""
 
 		# Create and implement tform for each image
-		for i in range(len(self.images_dict)):
+		# for i in range(len(self.images_dict)):
+		for i in range(len(ind_params)):
 			params = ind_params[i,:]
 			# print("Check the params:\n", params)
 			tform_guess = self.tform_create(params[2], params[3], 0, 0, 0, params[1])
@@ -750,7 +751,8 @@ class gNAV_agent:
 		axis_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10)
 		vis.add_geometry(axis_origin)
 
-		for i in range(len(self.images_dict)):
+		# for i in range(len(self.images_dict)):
+		for i in range(self.im_num):
 			cloud = o3d.geometry.PointCloud()
 			cloud.points = o3d.utility.Vector3dVector(self.im_pts_best_guess[i]['pts'])
 			cloud.colors = o3d.utility.Vector3dVector(self.im_mosaic[i]['color_g'])
@@ -791,7 +793,7 @@ class gNAV_agent:
 		corners = self.im_pts_2d[imnum]['corners']
 		# Define corner indices 
 		idxs = [0, -corners[2], -1, corners[2]-1]
-		# print(idxs)
+		# print(f"IDXs: {idxs}")
 		
 		# Grab corner points 
 		points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
@@ -1084,7 +1086,7 @@ class gNAV_agent:
 		"""
 		self.micro_ps = [{} for _ in range(len(self.images_dict))]
 		# Loop through each image
-		for i in range(len(self.images_dict)):
+		for i in range(self.im_num):
 			# Grab current points and corners
 			pts_curr = self.im_pts_best_guess[i]['pts']
 			corners = self.im_pts_2d[i]['corners']
@@ -1234,7 +1236,7 @@ class gNAV_agent:
 		Output: Subplot with trapezoids and micropatch grids
 		"""
 
-		num_imgs = len(self.images_dict)
+		num_imgs = self.im_num #len(self.images_dict) # setting to im_num 
 		fig, axes = plt.subplots(1, num_imgs, figsize=(5*num_imgs, 5))
 
 		for i in range(num_imgs):

@@ -766,7 +766,7 @@ class gNAV_agent:
 		corners = self.im_pts_2d[imnum]['corners']
 		# Define corner indices 
 		idxs = [0, -corners[2], -1, corners[2]-1]
-		# print(idxs)
+		# print(f"IDXs: {idxs}")
 		
 		# Grab corner points 
 		points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
