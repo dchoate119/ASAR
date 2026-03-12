@@ -840,6 +840,9 @@ class gNAV_agent:
 				# Shift points 
 				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
 				# print(shiftx,shifty)
+				# if imnum == 0 and shiftx == -5 and shifty == -5:
+					# self.CHECKER_PTS = shifted_loc_pts
+					# self.CHECKER_C = inside_cg
 				# print(shifted_loc_pts)
 
 				# Build tree
