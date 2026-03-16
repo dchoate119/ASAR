@@ -1516,3 +1516,65 @@ class gNAV_agent:
 		# fig.legend(handles, labels, loc='upper right')
 		plt.tight_layout()
 		plt.show()
+
+
+
+	def ssd_nxn_NORM(self, n, imnum):
+		"""
+		New SSD process to run faster
+		Sum of squared differences. Shifts around pixels 
+		***NORMALIZING INTENSITY VALUES***
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Colors of downsampled pts\n", downsampled_cg)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				# if imnum == 0 and shiftx == -5 and shifty == -5:
+					# self.CHECKER_PTS = shifted_loc_pts
+					# self.CHECKER_C = inside_cg
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				self.ints2 = nearest_intensities
+				# print("\nNearest Intensities\n", nearest_intensities)
+				# print(distances, indices)
+
+				# NORMALIZE
+				downsampled_cg -= np.mean(downsampled_cg)
+				nearest_intensities -= np.mean(nearest_intensities)
+
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities 
+				# print("\nDifferences\n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
+		return ssds
