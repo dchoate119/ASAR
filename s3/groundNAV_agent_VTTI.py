@@ -1578,3 +1578,58 @@ class gNAV_agent:
 		print(f"Number of points used for image {imnum}: ", diffs.shape)
 		
 		return ssds
+
+
+	def ssd_nxn_micro_NORM(self, n, imnum, pnum):
+		"""
+		Gets the SSD values for an individual micropatch within an image
+		Input: n (for nxn pixel shift), image number, micro-patch number 
+		***NORMALIZING INTENSITY VALUES***
+		Output: SSD for the micropatch and all nxn shifts
+		"""
+
+		# Downsample factor
+		downs = 1
+		ssds = np.zeros((2*n+1, 2*n+1))
+		loc_pts = self.micro_ps_local[imnum][pnum]['pts'].copy()
+		# print("Micropatch locations: \n", loc_pts)
+
+		# Each nxn shift
+		for shiftx in range(-n, n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image
+				inside_pts, inside_cg = self.grab_inside_sat_micro(imnum, pnum, shiftx, shifty)
+				# self.inside_pts = inside_pts # TESTING PURPOSES 
+				# self.inside_cg = inside_cg # TESTING PURPOSES
+				# Downsample points (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Color of downsampled satellite pts: \n", downsampled_cg)
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx, shifty, 0])
+				# print("Shifted micropatch pts: \n":, shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.micro_ps_local[imnum][pnum]['color_g'][indices,0] # CHECK THIS 
+				# print("Nearest intensities: \n", nearest_intensities)
+				# self.intensity_check = nearest_intensities # TESTING PURPOSES 
+				# self.pts_check = shifted_loc_pts[indices] # TESTING PURPOSES
+
+				# NORMALIZE
+				downsampled_cg -= np.mean(downsampled_cg)
+				nearest_intensities -= np.mean(nearest_intensities)
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities
+				# print("Differences: \n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store ssd value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		return ssds
