@@ -442,11 +442,12 @@ class gNAV_agent:
 
 		# Store in dict
 		corners = np.array([x,y,width,height])
-		self.im_pts_2d[imnum] = {'pts': pts_loc}
-		self.im_pts_2d[imnum]['rgbc'] = pts_rgb
-		self.im_pts_2d[imnum]['corners'] = corners
+		# COMMENTING OUT FOR NOW 
+		# self.im_pts_2d[imnum] = {'pts': pts_loc}
+		# self.im_pts_2d[imnum]['rgbc'] = pts_rgb
+		# self.im_pts_2d[imnum]['corners'] = corners
 
-		# return pts_loc, pts_rgb
+		return pts_loc, pts_rgb
 
 	def grab_image_pts_tot(self, mosaic_params):
 		"""
@@ -809,6 +810,38 @@ class gNAV_agent:
 		mask = polygon_path.contains_points(self.ref_pts[:,:-1])
 		inside_pts = self.ref_pts[mask]
 		inside_cg = self.ref_rgb[mask]
+
+		return inside_pts, inside_cg
+
+	def get_inside_sat_pts_color(self, imnum, shiftx, shifty):
+		"""
+		Getting points inside the satellite image
+		Input: image number, shiftx, shifty
+		Output: Points inside corners from satellite image 
+		"""
+
+		# LEAVING OFF HERE**************
+
+		# # Get corners 
+		# corners = self.im_pts_2d[imnum]['corners']
+		# # Define corner indices 
+		# idxs = [0, -corners[2], -1, corners[2]-1]
+		# # print(f"IDXs: {idxs}")
+		
+		# # Grab corner points 
+		# points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
+		# # Shift corners of points
+		# points[:,0] += shiftx
+		# points[:,1] += shifty
+		# points2d = points[:,:-1]
+		# # print(points2d)
+
+		# # Define polygon path 
+		# polygon_path = Path(points2d)
+		# # Points within polygon 
+		# mask = polygon_path.contains_points(self.ref_pts[:,:-1])
+		# inside_pts = self.ref_pts[mask]
+		# inside_cg = self.ref_rgb[mask]
 
 		return inside_pts, inside_cg
 
@@ -1579,6 +1612,142 @@ class gNAV_agent:
 		
 		return ssds
 
+	def ssd_nxn_NORM2(self, n, imnum):
+		"""
+		New SSD process to run faster
+		Sum of squared differences. Shifts around pixels 
+		***NORMALIZING INTENSITY VALUES***
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Colors of downsampled pts\n", downsampled_cg)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				# if imnum == 0 and shiftx == -5 and shifty == -5:
+					# self.CHECKER_PTS = shifted_loc_pts
+					# self.CHECKER_C = inside_cg
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.im_mosaic[imnum]['color_g'][indices,0]
+				self.ints2 = nearest_intensities
+				# print("\nNearest Intensities\n", nearest_intensities)
+				# print(distances, indices)
+
+				# NORMALIZE
+				# downsampled_cg -= np.mean(downsampled_cg)
+				# nearest_intensities -= np.mean(nearest_intensities)
+				# downsampled_cg = np.maximum(downsampled_cg, 0)
+				# nearest_intensities = np.maximum(nearest_intensities, 0)
+				# BEST case
+				downsampled_cg -= 0.5576082
+				nearest_intensities -= 0.37822196 # Best case
+				# downsampled_cg = np.maximum(downsampled_cg, 0)
+				# nearest_intensities = np.maximum(nearest_intensities, 0)
+
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities 
+				# print("\nDifferences\n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
+		return ssds
+
+	def ssd_nxn_COLOR(self, n, imnum):
+		"""
+		New SSD process to run faster
+		Sum of squared differences. Shifts around pixels 
+		USING COLOR INSTEAD OF INTENSITIES ******
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				# NEED TO START HERE TO GET COLOR DATA ***********
+				#===============================================================================
+				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
+				# print(inside_pts.shape)
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Colors of downsampled pts\n", downsampled_cg)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				# if imnum == 0 and shiftx == -5 and shifty == -5:
+					# self.CHECKER_PTS = shifted_loc_pts
+					# self.CHECKER_C = inside_cg
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.im_mosaic[imnum]['rgbc'][indices]
+				self.ints2 = nearest_intensities
+				# print("\nNearest Intensities\n", nearest_intensities)
+				# print(distances, indices)
+
+				# # NORMALIZE
+				# # downsampled_cg -= np.mean(downsampled_cg)
+				# # nearest_intensities -= np.mean(nearest_intensities)
+				# # downsampled_cg = np.maximum(downsampled_cg, 0)
+				# # nearest_intensities = np.maximum(nearest_intensities, 0)
+				# # BEST case
+				# downsampled_cg -= 0.5576082
+				# nearest_intensities -= 0.37822196 # Best case
+				# # downsampled_cg = np.maximum(downsampled_cg, 0)
+				# # nearest_intensities = np.maximum(nearest_intensities, 0)
+
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities 
+				# print("\nDifferences\n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
+		return ssds
+
 
 	def ssd_nxn_micro_NORM(self, n, imnum, pnum):
 		"""
@@ -1622,6 +1791,63 @@ class gNAV_agent:
 				# NORMALIZE
 				downsampled_cg -= np.mean(downsampled_cg)
 				nearest_intensities -= np.mean(nearest_intensities)
+
+				# Calculate SSDS
+				diffs = downsampled_cg - nearest_intensities
+				# print("Differences: \n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store ssd value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+		return ssds
+
+
+	def ssd_nxn_micro_NORM2(self, n, imnum, pnum):
+		"""
+		Gets the SSD values for an individual micropatch within an image
+		Input: n (for nxn pixel shift), image number, micro-patch number 
+		***NORMALIZING INTENSITY VALUES (adjusting for runway)***
+		Output: SSD for the micropatch and all nxn shifts
+		"""
+
+		# Downsample factor
+		downs = 1
+		ssds = np.zeros((2*n+1, 2*n+1))
+		loc_pts = self.micro_ps_local[imnum][pnum]['pts'].copy()
+		# print("Micropatch locations: \n", loc_pts)
+
+		# Each nxn shift
+		for shiftx in range(-n, n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image
+				inside_pts, inside_cg = self.grab_inside_sat_micro(imnum, pnum, shiftx, shifty)
+				# self.inside_pts = inside_pts # TESTING PURPOSES 
+				# self.inside_cg = inside_cg # TESTING PURPOSES
+				# Downsample points (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Every 'downs'-th element
+				downsampled_cg = inside_cg[::downs,0]
+				# print("Color of downsampled satellite pts: \n", downsampled_cg)
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx, shifty, 0])
+				# print("Shifted micropatch pts: \n":, shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_intensities = self.micro_ps_local[imnum][pnum]['color_g'][indices,0] # CHECK THIS 
+				# print("Nearest intensities: \n", nearest_intensities)
+				# self.intensity_check = nearest_intensities # TESTING PURPOSES 
+				# self.pts_check = shifted_loc_pts[indices] # TESTING PURPOSES
+
+				# NORMALIZE
+				downsampled_cg -= np.mean(downsampled_cg)
+				downsampled_cg -= 0.37822196
+				nearest_intensities -= 0.37822196 # Best case
+				# nearest_intensities -= np.mean(nearest_intensities)
 
 				# Calculate SSDS
 				diffs = downsampled_cg - nearest_intensities
