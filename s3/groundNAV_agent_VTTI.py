@@ -30,8 +30,8 @@ class gNAV_agent:
 		self.cameras_c_loc = cameras_colm	# Location of cameras file
 		self.pts3d_c_loc = pts3d_colm 		# Location of ptd3d file
 		self.imss = images 					# Location of specific image folder 
-		self.sat_ref = cv2.imread(sat_ref) 	# Satellite reference image
-		self.sat_ref = cv2.cvtColor(self.sat_ref, cv2.COLOR_BGR2GRAY)
+		self.sat_ref_c = cv2.imread(sat_ref) 	# Satellite reference image
+		self.sat_ref = cv2.cvtColor(self.sat_ref_c, cv2.COLOR_BGR2GRAY)
 		self.read_colmap_data()
 		self.image_parsing()
 		self.sat_im_init()
@@ -134,15 +134,31 @@ class gNAV_agent:
 		x, y = np.meshgrid(np.arange(rows), np.arange(cols))
 		ref_pts = np.stack([x.ravel(), y.ravel(), np.ones_like(x).ravel()], axis=1)
 
+		# print("LOOKING AT COLOR VALS\n")
+		# print("This is the sat ref variable:\n", self.sat_ref)
+		# print("This is the colored sat ref:\n", self.sat_ref_c)
+
 		gray_vals = self.sat_ref.ravel().astype(np.float32)
+
+		# print("These are the gray vals:\n", gray_vals)
+
+		# ADDING COLOR 
+		rgb_vals = self.sat_ref_c.reshape(-1, 3).astype(np.float32)[:,::-1]
+		# print("These are the rgb vals unraveled:\n", rgb_vals)
+		rgb_vals /= 255
+
+
 		ref_rgb = np.stack([gray_vals]*3, axis=1)
 		ref_rgb /= 255
+		# print("This is now ref_rgb:\n", ref_rgb)
+		# print("This is now ref_rgb_c:\n", rgb_vals)
 
 		# ADDING A SHIFT TO FULL SAT IMAGE - comment out for old version
 		ref_pts -= np.array([700,600,0])
 
 		self.ref_pts = ref_pts
 		self.ref_rgb = ref_rgb
+		self.ref_rgb_c = rgb_vals
 
 	def grab_pts(self, pts3d):
 		"""
@@ -816,34 +832,36 @@ class gNAV_agent:
 	def get_inside_sat_pts_color(self, imnum, shiftx, shifty):
 		"""
 		Getting points inside the satellite image
+		GETTING COLOR NOW
 		Input: image number, shiftx, shifty
 		Output: Points inside corners from satellite image 
 		"""
 
 		# LEAVING OFF HERE**************
 
-		# # Get corners 
-		# corners = self.im_pts_2d[imnum]['corners']
-		# # Define corner indices 
-		# idxs = [0, -corners[2], -1, corners[2]-1]
-		# # print(f"IDXs: {idxs}")
+		# Get corners 
+		corners = self.im_pts_2d[imnum]['corners']
+		# Define corner indices 
+		idxs = [0, -corners[2], -1, corners[2]-1]
+		# print(f"IDXs: {idxs}")
 		
-		# # Grab corner points 
-		# points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
-		# # Shift corners of points
-		# points[:,0] += shiftx
-		# points[:,1] += shifty
-		# points2d = points[:,:-1]
-		# # print(points2d)
+		# Grab corner points 
+		points = np.array(self.im_pts_best_guess[imnum]['pts'])[idxs]
+		# Shift corners of points
+		points[:,0] += shiftx
+		points[:,1] += shifty
+		points2d = points[:,:-1]
+		# print(points2d)
 
-		# # Define polygon path 
-		# polygon_path = Path(points2d)
-		# # Points within polygon 
-		# mask = polygon_path.contains_points(self.ref_pts[:,:-1])
-		# inside_pts = self.ref_pts[mask]
-		# inside_cg = self.ref_rgb[mask]
+		# Define polygon path 
+		polygon_path = Path(points2d)
+		# Points within polygon 
+		mask = polygon_path.contains_points(self.ref_pts[:,:-1])
+		inside_pts = self.ref_pts[mask]
+		inside_rgb = self.ref_rgb_c[mask]
+		inside_cg = self.ref_rgb[mask]
 
-		return inside_pts, inside_cg
+		return inside_pts, inside_rgb
 
 
 
@@ -1660,8 +1678,13 @@ class gNAV_agent:
 				# downsampled_cg = np.maximum(downsampled_cg, 0)
 				# nearest_intensities = np.maximum(nearest_intensities, 0)
 				# BEST case
-				downsampled_cg -= 0.5576082
-				nearest_intensities -= 0.37822196 # Best case
+				sat_bestcase = 0.5576082
+				gnd_bestcase = 0.38640129
+				downsampled_cg -= sat_bestcase
+				nearest_intensities -= gnd_bestcase
+				# Clip difference in means
+				mean_dif = sat_bestcase - gnd_bestcase 
+
 				# downsampled_cg = np.maximum(downsampled_cg, 0)
 				# nearest_intensities = np.maximum(nearest_intensities, 0)
 
@@ -1697,13 +1720,13 @@ class gNAV_agent:
 				# Get points inside corners for satellite image 
 				# NEED TO START HERE TO GET COLOR DATA ***********
 				#===============================================================================
-				inside_pts, inside_cg = self.get_inside_sat_pts(imnum,shiftx,shifty)
-				# print(inside_pts.shape)
+				inside_pts, inside_rgb = self.get_inside_sat_pts_color(imnum,shiftx,shifty)
+				# print(f'Inside pts shape: \n{inside_pts.shape}')
 
 				# Downsample pts (grab only x and y)
 				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
-				downsampled_cg = inside_cg[::downs,0]
-				# print("Colors of downsampled pts\n", downsampled_cg)
+				downsampled_rgb = inside_rgb[::downs,:]
+				# print("Colors of downsampled pts\n", downsampled_rgb)
 
 				# Shift points 
 				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
@@ -1718,31 +1741,39 @@ class gNAV_agent:
 
 				# Find nearest points and calculate intensities
 				distances, indices = tree.query(downsampled_pts, k=1)
-				nearest_intensities = self.im_mosaic[imnum]['rgbc'][indices]
-				self.ints2 = nearest_intensities
-				# print("\nNearest Intensities\n", nearest_intensities)
+				nearest_rgb = self.im_mosaic[imnum]['rgbc'][indices][:,::-1]
+				# self.ints2 = nearest_rgb
+				# print("\nNearest rgbs\n", nearest_rgb)
 				# print(distances, indices)
 
-				# # NORMALIZE
-				# # downsampled_cg -= np.mean(downsampled_cg)
-				# # nearest_intensities -= np.mean(nearest_intensities)
-				# # downsampled_cg = np.maximum(downsampled_cg, 0)
-				# # nearest_intensities = np.maximum(nearest_intensities, 0)
+				# NORMALIZE
+				downsampled_rgb -= np.mean(downsampled_rgb, axis=0)
+				nearest_rgb -= np.mean(nearest_rgb, axis=0)
+
 				# # BEST case
 				# downsampled_cg -= 0.5576082
 				# nearest_intensities -= 0.37822196 # Best case
 				# # downsampled_cg = np.maximum(downsampled_cg, 0)
 				# # nearest_intensities = np.maximum(nearest_intensities, 0)
+				# Points to test: sat pts, sat colors, im pts, im colors
+
+
+				# # TESTING PURPOSES 
+				# self.sat_pts_totest = np.hstack((downsampled_pts, np.ones((len(downsampled_pts),1))))
+				# self.sat_rgb_totest = downsampled_rgb
+				# self.im_pts_totest = self.im_pts_best_guess[imnum]['pts'][indices]
+				# self.im_rgb_totest = nearest_rgb
 
 
 				# Calculate SSDS
-				diffs = downsampled_cg - nearest_intensities 
+				diffs = downsampled_rgb - nearest_rgb
 				# print("\nDifferences\n", diffs)
 				ssd_curr = np.sum(diffs**2)
 
 				# Store SSD value for the current shift
 				ssds[shiftx + n, shifty + n] = ssd_curr
 				# print("SSD = ", ssd_curr)
+
 
 		print(f"Number of points used for image {imnum}: ", diffs.shape)
 		
