@@ -1875,10 +1875,10 @@ class gNAV_agent:
 				# self.pts_check = shifted_loc_pts[indices] # TESTING PURPOSES
 
 				# NORMALIZE
-				downsampled_cg -= np.mean(downsampled_cg)
-				downsampled_cg -= 0.37822196
-				nearest_intensities -= 0.37822196 # Best case
-				# nearest_intensities -= np.mean(nearest_intensities)
+				sat_bestcase = 0.5576082
+				gnd_bestcase = 0.38640129
+				downsampled_cg -= sat_bestcase
+				nearest_intensities -= gnd_bestcase
 
 				# Calculate SSDS
 				diffs = downsampled_cg - nearest_intensities
