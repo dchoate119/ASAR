@@ -1779,6 +1779,99 @@ class gNAV_agent:
 		
 		return ssds
 
+	def rgb_to_ycbcr(self, rgb):
+		"""
+		Conversion from RGB to Y,Cb,Cr
+		Input: RGB values
+		Output: Y,Cb, Cr
+		"""
+		R = rgb[:,0]
+		G = rgb[:,1]
+		B = rgb[:,2]
+
+		Y  = 0.299 * R + 0.587 * G + 0.114 * B
+		Cb = -0.168736 * R - 0.331264 * G + 0.5 * B
+		Cr = 0.5 * R - 0.418688 * G - 0.081312 * B
+
+		return np.stack((Y, Cb, Cr), axis=1)
+
+
+
+
+	def ssd_nxn_COLOR_cbcr(self, n, imnum):
+		"""
+		Sum of squared differences. Shifts around pixels 
+		USING COLOR INSTEAD OF INTENSITIES ******
+		===== Cb, Cr comparisons instead of RGB =======
+		Input: n shift amount, image number
+		Output: sum of squared differences for each shift
+		"""
+		downs = 1 # Factor to downsample by 
+		ssds = np.zeros((2*n+1,2*n+1))
+		loc_pts = self.im_pts_best_guess[imnum]['pts'].copy()
+		# print(loc_pts)
+
+		for shiftx in range(-n,n+1):
+			for shifty in range(-n, n+1):
+				# Get points inside corners for satellite image 
+				# NEED TO START HERE TO GET COLOR DATA ***********
+				#===============================================================================
+				inside_pts, inside_rgb = self.get_inside_sat_pts_color(imnum,shiftx,shifty)
+				# print(f'Inside pts shape: \n{inside_pts.shape}')
+
+				# Downsample pts (grab only x and y)
+				downsampled_pts = inside_pts[::downs, :-1] # Take every 'downs'-th element
+				downsampled_rgb = inside_rgb[::downs,:]
+				# print("Colors of downsampled pts\n", downsampled_rgb)
+
+				# Shift points 
+				shifted_loc_pts = loc_pts + np.array([shiftx,shifty,0])
+				# print(shiftx,shifty)
+				# print(shifted_loc_pts)
+
+				# Build tree
+				tree = cKDTree(shifted_loc_pts[:,:2])
+
+				# Find nearest points and calculate intensities
+				distances, indices = tree.query(downsampled_pts, k=1)
+				nearest_rgb = self.im_mosaic[imnum]['rgbc'][indices][:,::-1]
+				# print("\nNearest rgbs\n", nearest_rgb)
+				# print(distances, indices)
+
+				# CONVERT TO Cb, Cr
+				# print(downsampled_rgb.shape)
+				# print(nearest_rgb.shape)
+				downsampled_cbcr = self.rgb_to_ycbcr(downsampled_rgb)
+				nearest_cbcr = self.rgb_to_ycbcr(nearest_rgb)
+
+				# # NORMALIZE
+				# downsampled_rgb -= np.mean(downsampled_rgb, axis=0)
+				# nearest_rgb -= np.mean(nearest_rgb, axis=0)
+
+
+				# TESTING PURPOSES 
+				self.sat_pts_totest = np.hstack((downsampled_pts, np.ones((len(downsampled_pts),1))))
+				self.sat_rgb_totest = downsampled_cbcr
+				self.im_pts_totest = self.im_pts_best_guess[imnum]['pts'][indices]
+				self.im_rgb_totest = nearest_cbcr
+
+
+				# Calculate SSDS
+				diffs = downsampled_cbcr[:,1:] - nearest_cbcr[:,1:]
+				# print("\nDifferences\n", diffs)
+				ssd_curr = np.sum(diffs**2)
+
+				# Store SSD value for the current shift
+				ssds[shiftx + n, shifty + n] = ssd_curr
+				# print("SSD = ", ssd_curr)
+
+				break
+			break
+
+
+		print(f"Number of points used for image {imnum}: ", diffs.shape)
+		
+		return ssds
 
 	def ssd_nxn_micro_NORM(self, n, imnum, pnum):
 		"""
