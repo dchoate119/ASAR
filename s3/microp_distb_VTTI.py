@@ -270,7 +270,7 @@ class microp_distb:
 				# print("GOT HERE") 
 		print("Total micropatches:", total_mps)
 		print("Micropatches with less than 2 confidence directions:", num_mp_cd)
-		print("Micropatches with less than NO confidence directions:", num_mp_cd2)
+		print("Micropatches with NO confidence directions:", num_mp_cd2)
 
 
 
