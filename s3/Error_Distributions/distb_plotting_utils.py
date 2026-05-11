@@ -298,6 +298,78 @@ class microp_distb_plotter:
 
 
 
+	def compare_iso_ani_surface(self, ssds_prob_iso, ssds_prob_ani, imnum, n):
+
+		ssds_prob_iso /= np.sum(ssds_prob_iso)
+		ssds_prob_ani /= np.sum(ssds_prob_ani)
+
+		# Grid (same as your function)
+		x = np.linspace(-n, n, 2*n+1)
+		y = np.linspace(-n, n, 2*n+1)
+		Y, X = np.meshgrid(x, y)
+
+		fig = plt.figure(figsize=(12, 5))
+
+		# =======================
+		# Isotropic
+		# =======================
+		ax1 = fig.add_subplot(121, projection='3d')
+
+		surf1 = ax1.plot_surface(X, Y, ssds_prob_iso, cmap='viridis', edgecolor='none')
+
+		# Max prob
+		idrow, idcol = np.unravel_index(np.argmax(ssds_prob_iso), ssds_prob_iso.shape)
+		shiftx = idrow - n
+		shifty = idcol - n
+
+		ax1.scatter(shiftx, shifty, ssds_prob_iso[idrow, idcol],
+		            color='red', s=50, label='Max prob')
+
+		ax1.scatter(0, 0, ssds_prob_iso[n, n] + 1e-6,
+		            color='black', s=50, label='Truth')
+
+		ax1.set_title(f'Isotropic: Image {imnum}')
+		ax1.set_xlim([-n, n])
+		ax1.set_ylim([-n, n])
+		ax1.set_zticks([])
+		ax1.set_xlabel('X Shift (pixels)')
+		ax1.set_ylabel('Y Shift (pixels)')
+		ax1.view_init(elev=90, azim=-90)
+		ax1.legend()
+
+
+		# =======================
+		# Anisotropic
+		# =======================
+		ax2 = fig.add_subplot(122, projection='3d')
+
+		surf2 = ax2.plot_surface(X, Y, ssds_prob_ani, cmap='viridis', edgecolor='none')
+
+		# Max prob
+		idrow, idcol = np.unravel_index(np.argmax(ssds_prob_ani), ssds_prob_ani.shape)
+		shiftx = idrow - n
+		shifty = idcol - n
+
+		ax2.scatter(shiftx, shifty, ssds_prob_ani[idrow, idcol],
+		            color='red', s=50, label='Max prob')
+
+		ax2.scatter(0, 0, ssds_prob_ani[n, n] + 1e-6,
+		            color='black', s=50, label='Truth')
+
+		ax2.set_title(f'Anisotropic: Image {imnum}')
+		ax2.set_xlim([-n, n])
+		ax2.set_ylim([-n, n])
+		ax2.set_xlabel('X Shift (pixels)')
+		ax2.set_ylabel('Y Shift (pixels)')
+		ax2.set_zticks([])
+		ax2.view_init(elev=90, azim=-90)
+		ax2.legend()
+
+		plt.tight_layout()
+		plt.show()
+
+		
+
 	def plot_softmax_and_confdir(self, distb_vecs, distb_mean_var_SM, elong_ims):
 		"""""
 		Plotting the softmax distribution for FULL IMAGE, confidence directions (when needed), 
