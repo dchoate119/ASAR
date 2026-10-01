@@ -532,7 +532,7 @@ class gNAV_agent:
 		Input: figure, axes
 		Output: subplot with proper ground section identification 
 		"""
-		plt.figure(figsize=(15,3))
+		plt.figure(figsize=(45,10))
 		rows = max(1,math.ceil(len(self.images_dict)/5))
 		# Loop through each image
 		for imnum in range(len(self.images_dict)):
