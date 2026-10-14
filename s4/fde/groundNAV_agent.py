@@ -53,7 +53,7 @@ class gNAV_agent:
 		"""
 
 		# Pycolmap version
-		recon = pycolmap.Reconstruction("../datasets/KBCB_colm")
+		recon = pycolmap.Reconstruction(self.colm_loc)
 		self.images_c = recon.images
 		self.cameras_c = recon.cameras
 		self.pts3d_c = recon.points3D
