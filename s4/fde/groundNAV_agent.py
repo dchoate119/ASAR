@@ -339,6 +339,14 @@ class gNAV_agent:
 
 		return h_0
 
+	def get_focal(self):
+		"""
+		Focal length used for unit vectors (overridden in gnav_calib.py)
+		"""
+		cam_id = list(self.cameras_c.keys())[78] # TODO *** hardcoded camera index
+		return self.cameras_c[cam_id].params[0]
+
+
 	def set_ref_frame(self):
 		"""
 		Defines a reference coordinate frame for the matching process
@@ -355,9 +363,8 @@ class gNAV_agent:
 		self.h_0 = self.height_avg(self.pts_gnd, self.origin_w)
 		print('\nHeight h_0 = ', self.h_0)
 
-		# Get focal length 
-		cam_id = list(self.cameras_c.keys())[78] # TODO ***
-		self.focal = self.cameras_c[cam_id].params[0]
+		# Get focal length
+		self.focal = self.get_focal()
 		# print("Focal length \n", self.focal)
 
 
