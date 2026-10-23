@@ -74,3 +74,81 @@ class gNAV_calib(gNAV_agent):
 				ssds[sx + n, sy + n] = np.mean((a - b)**2)
 
 		return ssds
+
+
+	def raster_patch(self, imnum, min_n = 4, win = 5, n = 0):
+		"""
+		Resampling the projected frame into a 2D grid on sat pixels for gradient calculations
+		Each sat px = mean gray of the camera pts that land in it (near field averaged down to sat res)
+		Far-field mask: sat px whose win x win local mean count < min_n -> NaN (camera coarser than sat there)
+		Empty px inside the kept region (gaps between far-field rows of camera pts) filled from 3x3 neighbors - interpolated, not measured
+		min_n, win are eyeballed defaults - tune from the cnt plot
+		n: extra sat px on each side of the sat crop, room to slide it +-n px under the patch
+		Output: patch (2D camera gray, NaN = masked), sat (2D sat gray, patch box + n each side), cnt (camera pts per sat px)
+		"""
+		pts = self.im_pts_best_guess[imnum]['pts'][:, :2]
+		g_im = self.im_mosaic[imnum]['color_g'][:,0]
+
+		# Sat pixel each camera pt lands in (ref_pts are integer sat px -> round), relative to box corner
+		px = np.round(pts).astype(int)
+		x0, y0 = px.min(0)
+		x1, y1 = px.max(0)
+		shape = (y1 - y0 + 1, x1 - x0 + 1)
+		flat = (px[:, 1] - y0) * shape[1] + (px[:, 0] - x0)
+
+		# Sum and count of camera pts per sat px
+		sums = np.bincount(flat, weights=g_im, minlength=shape[0]*shape[1]).reshape(shape)
+		cnt = np.bincount(flat, minlength=shape[0]*shape[1]).reshape(shape)
+
+		# Mean per sat px; low local count (sparse outer edge, outside footprint) -> NaN
+		patch = np.full(shape, np.nan)
+		cnt_avg = cv2.blur(cnt.astype(np.float64), (win, win))
+		keep = cnt_avg >= min_n
+		has = keep & (cnt > 0)
+		patch[has] = sums[has] / cnt[has]
+
+		# Fill empty px (gaps between far-field rows of camera pts) with the mean of pts in their 3x3 neighborhood
+		sums_3, cnt_3 = cv2.blur(sums, (3, 3)), cv2.blur(cnt.astype(np.float64), (3, 3))
+		gap = keep & (cnt == 0) & (cnt_3 > 0)
+		patch[gap] = sums_3[gap] / cnt_3[gap]
+
+		# Satellite is already 2D - just crop the same box, n px bigger each side (ref_pts = sat px - [700, 600])
+		sat = self.sat_ref[y0+600-n : y1+601+n, x0+700-n : x1+701+n] / 255
+		return patch, sat, cnt
+
+
+	def grad_score(self, patch, sat):
+		"""
+		Gradient-orientation agreement between rasterized camera patch and sat crop (same grid, from raster_patch)
+		S = magnitude difference sum sum|m_sat - m_im| or weighted mean sum(w cos(2 dtheta)) / sum(w) (swap by commenting), w = |grad_sat| |grad_im|
+		cos(2 dtheta): +1 parallel edges (either polarity), -1 perpendicular; w ~ 0 unless both have an edge
+		NaN in patch spreads to its 3x3 neighbors through Sobel -> px next to holes / outside footprint skipped
+		Output: S (difference sum: lower = better, weighted mean: higher = better), m_im, m_sat (gradient magnitudes, for plotting)
+		"""
+		gx_i, gy_i = cv2.Sobel(patch, cv2.CV_64F, 1, 0), cv2.Sobel(patch, cv2.CV_64F, 0, 1)
+		gx_s, gy_s = cv2.Sobel(sat, cv2.CV_64F, 1, 0), cv2.Sobel(sat, cv2.CV_64F, 0, 1)
+		m_im, m_sat = np.hypot(gx_i, gy_i), np.hypot(gx_s, gy_s)
+
+		# Angle between edge directions, weighted by both edge strengths
+		d_theta = np.arctan2(gy_s, gx_s) - np.arctan2(gy_i, gx_i)
+		w = m_sat * m_im
+		ok = np.isfinite(w)
+		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
+		S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		return S, m_im, m_sat
+
+
+	def grad_score_shifts(self, imnum, n = 5):
+		"""
+		Gradient score over (2n+1)^2 integer shifts of the projected frame (sat px), same layout as ssd_norm
+		Output: S[shiftx + n, shifty + n] (higher = better)
+		"""
+		patch, sat, __ = self.raster_patch(imnum, n=n)
+		H, W = patch.shape
+
+		S = np.zeros((2*n+1, 2*n+1))
+		for sx in range(-n, n+1):
+			for sy in range(-n, n+1):
+				# Sat window under the patch, image shifted by +(sx, sy) -> window moves by -(sx, sy) (same sign as ssd_norm)
+				S[sx + n, sy + n] = self.grad_score(patch, sat[n-sy : n-sy+H, n-sx : n-sx+W])[0]
+		return S
