@@ -120,10 +120,11 @@ class gNAV_calib(gNAV_agent):
 	def grad_score(self, patch, sat):
 		"""
 		Gradient-orientation agreement between rasterized camera patch and sat crop (same grid, from raster_patch)
-		S = magnitude difference sum sum|m_sat - m_im| or weighted mean sum(w cos(2 dtheta)) / sum(w) (swap by commenting), w = |grad_sat| |grad_im|
+		S = magnitude difference sum sum|m_sat - m_im|, weighted mean sum(w cos(2 dtheta)) / sum(w), or orientation balanced
+		(weighted mean per sat edge-direction bin, then plain mean over bins) - swap by commenting, w = |grad_sat| |grad_im|
 		cos(2 dtheta): +1 parallel edges (either polarity), -1 perpendicular; w ~ 0 unless both have an edge
 		NaN in patch spreads to its 3x3 neighbors through Sobel -> px next to holes / outside footprint skipped
-		Output: S (difference sum: lower = better, weighted mean: higher = better), m_im, m_sat (gradient magnitudes, for plotting)
+		Output: S (difference sum: lower = better, weighted mean / balanced: higher = better), m_im, m_sat (gradient magnitudes, for plotting)
 		"""
 		gx_i, gy_i = cv2.Sobel(patch, cv2.CV_64F, 1, 0), cv2.Sobel(patch, cv2.CV_64F, 0, 1)
 		gx_s, gy_s = cv2.Sobel(sat, cv2.CV_64F, 1, 0), cv2.Sobel(sat, cv2.CV_64F, 0, 1)
@@ -134,7 +135,14 @@ class gNAV_calib(gNAV_agent):
 		w = m_sat * m_im
 		ok = np.isfinite(w)
 		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
-		S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		# S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+
+		# Orientation balanced: score each sat edge-direction bin (mod 180 deg, 8 bins) separately, then plain mean over bins
+		b = (np.mod(np.arctan2(gy_s, gx_s), np.pi) / (np.pi / 8)).astype(int) % 8
+		W_b = np.bincount(b[ok], weights=w[ok], minlength=8)
+		A_b = np.bincount(b[ok], weights=w[ok] * np.cos(2 * d_theta[ok]), minlength=8)
+		use = W_b > 0.02 * W_b.sum()   # skip near-empty bins (pure noise) - 2% cutoff eyeballed
+		S = np.mean(A_b[use] / W_b[use])
 		return S, m_im, m_sat
 
 
