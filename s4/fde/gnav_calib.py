@@ -117,12 +117,13 @@ class gNAV_calib(gNAV_agent):
 		return patch, sat, cnt
 
 
-	def grad_score(self, patch, sat):
+	def grad_score(self, patch, sat, p_lo = 50, p_hi = 95):
 		"""
 		Gradient-orientation agreement between rasterized camera patch and sat crop (same grid, from raster_patch)
 		S = magnitude difference sum sum|m_sat - m_im|, weighted mean sum(w cos(2 dtheta)) / sum(w), or orientation balanced
 		(weighted mean per sat edge-direction bin, then plain mean over bins) - swap by commenting, w = |grad_sat| |grad_im|
 		cos(2 dtheta): +1 parallel edges (either polarity), -1 perpendicular; w ~ 0 unless both have an edge
+		Magnitude clipping, per image (own percentiles): px below p_lo dropped, magnitudes above p_hi saturated in w
 		NaN in patch spreads to its 3x3 neighbors through Sobel -> px next to holes / outside footprint skipped
 		Output: S (difference sum: lower = better, weighted mean / balanced: higher = better), m_im, m_sat (gradient magnitudes, for plotting)
 		"""
@@ -135,12 +136,20 @@ class gNAV_calib(gNAV_agent):
 		w = m_sat * m_im
 		ok = np.isfinite(w)
 
+		# Magnitude clipping: drop weak (noisy orientation) px, saturate strong edges so a few don't dominate w
+		# Thresholds per image since camera and sat contrast scales differ - comment out block to disable
+		lo_i, hi_i = np.percentile(m_im[ok], [p_lo, p_hi])
+		lo_s, hi_s = np.percentile(m_sat[ok], [p_lo, p_hi])
+		w = np.minimum(m_sat, hi_s) * np.minimum(m_im, hi_i)        # saturate top
+		ok &= (m_im > lo_i) & (m_sat > lo_s)                         # drop bottom
+		# ok &= (m_im < hi_i) & (m_sat < hi_s)                        # hard band instead: also drop top (use with w = m_sat * m_im)
+
 		# METRIC 1: straight difference (basic ssd-style)
 		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
 
 		# METRIC 2: weighted score function
-		# S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
-		S = np.sum(w[ok] * np.cos(d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		# S = np.sum(w[ok] * np.cos(d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
 
 		# METRIC 3: Balanced by orientation
 		# Orientation balanced: score each sat edge-direction bin (mod 180 deg, 8 bins) separately, then plain mean over bins
@@ -148,11 +157,11 @@ class gNAV_calib(gNAV_agent):
 		W_b = np.bincount(b[ok], weights=w[ok], minlength=8)
 		A_b = np.bincount(b[ok], weights=w[ok] * np.cos(2 * d_theta[ok]), minlength=8)
 		use = W_b > 0.02 * W_b.sum()   # skip near-empty bins (pure noise) - 2% cutoff eyeballed
-		S = np.mean(A_b[use] / W_b[use])
+		# S = np.mean(A_b[use] / W_b[use])
 		return S, m_im, m_sat
 
 
-	def grad_score_shifts(self, imnum, n = 5):
+	def grad_score_shifts(self, imnum, n = 5, p_lo = 50, p_hi = 95):
 		"""
 		Gradient score over (2n+1)^2 integer shifts of the projected frame (sat px), same layout as ssd_norm
 		Output: S[shiftx + n, shifty + n] (higher = better)
@@ -164,7 +173,7 @@ class gNAV_calib(gNAV_agent):
 		for sx in range(-n, n+1):
 			for sy in range(-n, n+1):
 				# Sat window under the patch, image shifted by +(sx, sy) -> window moves by -(sx, sy) (same sign as ssd_norm)
-				S[sx + n, sy + n] = self.grad_score(patch, sat[n-sy : n-sy+H, n-sx : n-sx+W])[0]
+				S[sx + n, sy + n] = self.grad_score(patch, sat[n-sy : n-sy+H, n-sx : n-sx+W], p_lo, p_hi)[0]
 		return S
 
 
