@@ -134,9 +134,15 @@ class gNAV_calib(gNAV_agent):
 		d_theta = np.arctan2(gy_s, gx_s) - np.arctan2(gy_i, gx_i)
 		w = m_sat * m_im
 		ok = np.isfinite(w)
-		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
-		# S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
 
+		# METRIC 1: straight difference (basic ssd-style)
+		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
+
+		# METRIC 2: weighted score function
+		# S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		S = np.sum(w[ok] * np.cos(d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+
+		# METRIC 3: Balanced by orientation
 		# Orientation balanced: score each sat edge-direction bin (mod 180 deg, 8 bins) separately, then plain mean over bins
 		b = (np.mod(np.arctan2(gy_s, gx_s), np.pi) / (np.pi / 8)).astype(int) % 8
 		W_b = np.bincount(b[ok], weights=w[ok], minlength=8)
@@ -160,3 +166,29 @@ class gNAV_calib(gNAV_agent):
 				# Sat window under the patch, image shifted by +(sx, sy) -> window moves by -(sx, sy) (same sign as ssd_norm)
 				S[sx + n, sy + n] = self.grad_score(patch, sat[n-sy : n-sy+H, n-sx : n-sx+W])[0]
 		return S
+
+
+	def phase_corr(self, imnum, n = 5):
+		"""
+		Phase correlation of angle-doubled gradients, camera patch vs sat crop at the placement (raster_patch grid)
+		Angle-doubled gradient z = (gx + i gy)^2 / |g|: length |g|, angle 2 theta -> polarity-free (same idea as cos(2 dtheta))
+		Masked camera px (NaN after Sobel) -> z = 0 in BOTH images (no edge there); Hann window against FFT wrap-around
+		Cross-power spectrum / its magnitude -> every frequency weighted equally (whitening) -> sharp peak
+		Output: P[shiftx + n, shifty + n] (higher = better), same layout and sign as grad_score_shifts
+		"""
+		patch, sat, __ = self.raster_patch(imnum)   # n = 0 -> sat crop is the patch box at the placement
+		z = []
+		for im in (patch, sat):
+			g = cv2.Sobel(im, cv2.CV_64F, 1, 0) + 1j * cv2.Sobel(im, cv2.CV_64F, 0, 1)
+			z.append(g**2 / (np.abs(g) + 1e-12))
+		ok = np.isfinite(z[0])
+		win = cv2.createHanningWindow(patch.shape[::-1], cv2.CV_64F)
+		z_im, z_sat = [np.where(ok, zi, 0) * win for zi in z]
+
+		# Normalized cross-power spectrum -> peak at shift d where camera(x) = sat(x - d)
+		R = np.fft.fft2(z_im) * np.conj(np.fft.fft2(z_sat))
+		r = np.fft.ifft2(R / (np.abs(R) + 1e-12)).real
+
+		# Read out shifts -n..n (negative shifts wrap to the end of r); r is [row = y, col = x] -> transpose to [x, y]
+		idx = np.arange(-n, n+1)
+		return r[np.ix_(idx % r.shape[0], idx % r.shape[1])].T
