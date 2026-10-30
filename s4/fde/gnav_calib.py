@@ -148,8 +148,7 @@ class gNAV_calib(gNAV_agent):
 		# S = np.sum(np.abs(m_sat[ok] - m_im[ok]))                       # Magnitude difference sum (lower = better)
 
 		# METRIC 2: weighted score function
-		S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
-		# S = np.sum(w[ok] * np.cos(d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
+		# S = np.sum(w[ok] * np.cos(2 * d_theta[ok])) / np.sum(w[ok])  # Weighted mean (-1 to 1)
 
 		# METRIC 3: Balanced by orientation
 		# Orientation balanced: score each sat edge-direction bin (mod 180 deg, 8 bins) separately, then plain mean over bins
@@ -157,7 +156,7 @@ class gNAV_calib(gNAV_agent):
 		W_b = np.bincount(b[ok], weights=w[ok], minlength=8)
 		A_b = np.bincount(b[ok], weights=w[ok] * np.cos(2 * d_theta[ok]), minlength=8)
 		use = W_b > 0.02 * W_b.sum()   # skip near-empty bins (pure noise) - 2% cutoff eyeballed
-		# S = np.mean(A_b[use] / W_b[use])
+		S = np.mean(A_b[use] / W_b[use])
 		return S, m_im, m_sat
 
 
