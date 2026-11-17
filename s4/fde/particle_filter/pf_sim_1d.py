@@ -3,6 +3,7 @@
 # Imports
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 
 class ParticleFilter1D():
@@ -62,6 +63,31 @@ class ParticleFilter1D():
         self.weights /= self.weights.sum()
 
 
+    def update_st(self, z_J, J_strip, sigma_z):
+        """
+        Reweight particles by structure tensor similarity between captured and particle windows
+        Score: NCC between flattened (3, H, L) structure tensor windows
+        Likelihood: exp(-(1 - NCC) / (2 sigma_z^2))
+        Inputs: captured window structure tensor z_J (3, H, L), strip structure tensor J_strip (3, H, W),
+        likelihood std sigma_z (on the 1 - NCC scale)
+        NOTE: per-pixel J (no cell pooling), per-pair NCC (no dataset centering)
+        """
+        # Steps 1-2: cut each particle's J window and score against z_J with NCC
+        z = z_J.ravel() - z_J.mean()
+        z /= np.linalg.norm(z) + 1e-12
+        ncc = np.empty(self.N)
+        for i, p in enumerate(self.particles):
+            w = get_window(J_strip, p, self.L, self.heading).ravel()
+            w = w - w.mean()
+            ncc[i] = z @ w / (np.linalg.norm(w) + 1e-12)
+        # Step 3: log-likelihood, shifted so the best particle is 0 (avoids underflow)
+        log_lik = -(1 - ncc) / (2 * sigma_z**2)
+        log_lik -= log_lik.max()
+        # Steps 4-5: Bayes update and normalize
+        self.weights *= np.exp(log_lik)
+        self.weights /= self.weights.sum()
+
+
     def n_eff(self):
         """
         Effective sample size: N if weights are uniform, 1 if one particle holds all weight
@@ -112,14 +138,14 @@ def get_window(strip, s, L, heading=1):
     """
     Forward-looking window from UAV position s: [s, s+L] if heading +1, [s-L, s] if heading -1
     NOTE: no 180 deg rotation for heading -1 (capture and particle windows are cut the same way)
-    Input: airstrip, position s (px), window length L (px), heading (+1 / -1)
-    Output: window (strip height, L)
+    Input: airstrip (H, W) or stacked maps (C, H, W), position s (px), window length L (px), heading (+1 / -1)
+    Output: window (..., strip height, L)
     """
     s = int(round(s))
     w_0, w_1 = (s, s + L) if heading > 0 else (s - L, s)
-    if w_0 < 0 or w_1 > strip.shape[1]:
-        raise ValueError(f"s={s} window [{w_0}, {w_1}] outside strip [0, {strip.shape[1]}]")
-    return strip[:, w_0:w_1]
+    if w_0 < 0 or w_1 > strip.shape[-1]:
+        raise ValueError(f"s={s} window [{w_0}, {w_1}] outside strip [0, {strip.shape[-1]}]")
+    return strip[..., w_0:w_1]
 
 def capture(strip, s, L, heading=1, sigma_meas=0, rng=None):
     """
@@ -152,4 +178,22 @@ def plot_curr_particles(strip, particles, s_true=None):
             ax.axvline(s_true, c='g', lw=2)
     plt.tight_layout()
     plt.show()
+
+
+def st_preprocess(img, sigma=2, max_angle=60):
+    """
+    Structure tensor maps for the PF update: Gaussian-smoothed (integration scale sigma) outer product
+    of the Sobel gradient, normalized by trace, orientation filtered
+    Trace normalization: contrast-invariant, keeps orientation + coherence only
+    Orientation filter: zeros pixels whose dominant gradient is more than max_angle deg from along-track
+    Input: grayscale image (H, W), sigma (px), max_angle (deg)
+    Output: (3, H, W) maps Jxx, Jyy, Jxy
+    """
+    img = img.astype(np.float32)
+    gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
+    gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
+    J = np.stack([cv2.GaussianBlur(a, (0, 0), sigma) for a in (gx*gx, gy*gy, gx*gy)])
+    J = J / (J[0] + J[1] + 1e-6)
+    theta = 0.5 * np.arctan2(2*J[2], J[0] - J[1]) # Dominant gradient angle, 0 = along-track
+    return J * (np.abs(theta) <= np.deg2rad(max_angle))
 

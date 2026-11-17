@@ -77,6 +77,18 @@ def tile_dino(strip_rgb, L, stride, model, scale=2, device='cuda'):
 	return tok.flatten(1).cpu().numpy(), starts
 
 
+def structure_tensor(img, sigma):
+	"""
+	Per-pixel structure tensor: Gaussian-smoothed (integration scale sigma) outer product of the Sobel gradient
+	Inputs: grayscale image, sigma (px)
+	Output: (3, H, W) maps Jxx, Jyy, Jxy
+	"""
+	img = img.astype(np.float32)
+	gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
+	gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
+	return np.stack([cv2.GaussianBlur(a, (0, 0), sigma) for a in (gx*gx, gy*gy, gx*gy)])
+
+
 def ncc_matrix(tiles):
 	"""
 	Normalized cross-correlation between every pair of tiles (zero shift)
