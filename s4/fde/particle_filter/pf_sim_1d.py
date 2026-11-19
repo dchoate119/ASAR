@@ -147,7 +147,7 @@ def get_window(strip, s, L, heading=1):
         raise ValueError(f"s={s} window [{w_0}, {w_1}] outside strip [0, {strip.shape[-1]}]")
     return strip[..., w_0:w_1]
 
-def capture(strip, s, L, heading=1, sigma_meas=0, rng=None):
+def capture(strip, s, L, heading=1, sigma_meas=0):
     """
     Capturing image view from a UAV position, image at along-track position
     Input: airstrip (x,y) pixel grid, position s (px), Length of window L (px),
@@ -155,20 +155,32 @@ def capture(strip, s, L, heading=1, sigma_meas=0, rng=None):
     Output: window (strip height, L)
     """
     window = get_window(strip, s, L, heading).astype(np.float32)
+    rng = np.random.default_rng(17)
     if sigma_meas > 0:
         window += rng.normal(0, sigma_meas, window.shape)
     return window
 
 
 
-def plot_curr_particles(strip, particles, s_true=None):
+def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, particle_windows=False):
     """
-    Plot and visualize current distribution of particles 
-    Input: rectified strip, particle positions, true position (optional)
+    Plot and visualize current distribution of particles
+    Windows drawn only if L is given: true window (green box) needs s_true, particle windows (red boxes) need particle_windows=True
+    Input: rectified strip, particle positions, true position (optional), window length L (px),
+    heading (+1 / -1), particle_windows flag
     """
+    H = strip.shape[0]
     fig, axs = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
     axs[0].imshow(strip, cmap='gray', aspect='auto')
-    axs[0].scatter(particles, np.full_like(particles, strip.shape[0] // 2), s=4, c='r')
+    axs[0].scatter(particles, np.full_like(particles, H // 2), s=4, c='r')
+    if L is not None:
+        if particle_windows:
+            for p in particles:
+                x0 = p if heading > 0 else p - L
+                axs[0].add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='r', lw=0.5, alpha=0.3))
+        if s_true is not None:
+            x0 = s_true if heading > 0 else s_true - L
+            axs[0].add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='g', lw=2))
     axs[0].set_title("Particles on strip")
     axs[1].hist(particles, bins=100, range=(0, strip.shape[1]))
     axs[1].set_xlabel("s (px along track)")
@@ -196,4 +208,30 @@ def st_preprocess(img, sigma=2, max_angle=60):
     J = J / (J[0] + J[1] + 1e-6)
     theta = 0.5 * np.arctan2(2*J[2], J[0] - J[1]) # Dominant gradient angle, 0 = along-track
     return J * (np.abs(theta) <= np.deg2rad(max_angle))
+
+
+
+
+
+
+
+# Other utility fcns...
+
+def plot_windows(strip, particles, L, s_true, heading=1):
+    """
+    Plot strip with each particle's window (red boxes) and the capture window at s_true (green box)
+    Input: rectified strip (H, W), particle positions, window length L (px), true position s_true (px), heading (+1 / -1)
+    """
+    H = strip.shape[0]
+    fig, ax = plt.subplots(figsize=(14, 3))
+    ax.imshow(strip, cmap='gray')#, aspect='auto')
+    for p in particles:
+        x0 = p if heading > 0 else p - L
+        ax.add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='r', lw=0.5, alpha=0.3))
+    x0 = s_true if heading > 0 else s_true - L
+    ax.add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='g', lw=2))
+    ax.set_xlabel("s (px along track)")
+    ax.set_title("Particle windows (red) and capture window (green)")
+    plt.tight_layout()
+    plt.show()
 
