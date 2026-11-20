@@ -162,15 +162,21 @@ def capture(strip, s, L, heading=1, sigma_meas=0):
 
 
 
-def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, particle_windows=False):
+def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, particle_windows=False, z=None, p_near=None):
     """
     Plot and visualize current distribution of particles
     Windows drawn only if L is given: true window (green box) needs s_true, particle windows (red boxes) need particle_windows=True
+    Captured window shown in an extra row if z is given
+    Window of particle p_near (orange box + extra row) shown if p_near and L are given, same gray scale as z
     Input: rectified strip, particle positions, true position (optional), window length L (px),
-    heading (+1 / -1), particle_windows flag
+    heading (+1 / -1), particle_windows flag, captured window z (strip height, L) (optional),
+    particle position to inspect p_near (optional)
     """
     H = strip.shape[0]
-    fig, axs = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
+    show_p = p_near is not None and L is not None
+    n_rows = 2 + (z is not None) + show_p
+    fig, axs = plt.subplots(n_rows, 1, figsize=(14, 3 * n_rows))
+    axs[1].sharex(axs[0])
     axs[0].imshow(strip, cmap='gray', aspect='auto')
     axs[0].scatter(particles, np.full_like(particles, H // 2), s=4, c='r')
     if L is not None:
@@ -181,13 +187,29 @@ def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, partic
         if s_true is not None:
             x0 = s_true if heading > 0 else s_true - L
             axs[0].add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='g', lw=2))
+        if show_p:
+            x0 = p_near if heading > 0 else p_near - L
+            axs[0].add_patch(plt.Rectangle((x0, 0), L, H - 1, fill=False, ec='orange', lw=2))
     axs[0].set_title("Particles on strip")
     axs[1].hist(particles, bins=100, range=(0, strip.shape[1]))
     axs[1].set_xlabel("s (px along track)")
     axs[1].set_ylabel("count")
     if s_true is not None:
-        for ax in axs:
+        for ax in axs[:2]:
             ax.axvline(s_true, c='g', lw=2)
+    vmin, vmax = (z.min(), z.max()) if z is not None else (None, None)
+    if z is not None:
+        axs[2].imshow(z, cmap='gray', aspect='equal', vmin=vmin, vmax=vmax)
+        axs[2].set_title("Captured window")
+        axs[2].set_xlabel("px within window")
+    if show_p:
+        w_p = get_window(strip, p_near, L, heading)
+        title = f"Particle window, s={p_near:.0f}"
+        if s_true is not None:
+            title += f", Δ={p_near - s_true:+.0f} px"
+        axs[-1].imshow(w_p, cmap='gray', aspect='equal', vmin=vmin, vmax=vmax)
+        axs[-1].set_title(title)
+        axs[-1].set_xlabel("px within window")
     plt.tight_layout()
     plt.show()
 
@@ -234,4 +256,5 @@ def plot_windows(strip, particles, L, s_true, heading=1):
     ax.set_title("Particle windows (red) and capture window (green)")
     plt.tight_layout()
     plt.show()
+
 
