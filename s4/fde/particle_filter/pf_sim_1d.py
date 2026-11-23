@@ -41,6 +41,8 @@ class ParticleFilter1D():
         """
         noise = self.rng.normal(0, self.sigma_s, self.N)
         self.particles += delta_s + noise
+        out = (self.particles < self.s_min) | (self.particles > self.s_max)
+        self.weights[out] = 0.0
         self.particles = np.clip(self.particles, self.s_min, self.s_max)
 
 
