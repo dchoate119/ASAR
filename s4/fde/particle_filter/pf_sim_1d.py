@@ -108,7 +108,27 @@ class ParticleFilter1D():
         idx = np.searchsorted(cum_w, points)
         self.particles = self.particles[idx]
         self.weights = np.full(self.N, 1.0 / self.N)
-    
+
+
+    def kde(self, h, ds=1.0):
+        """
+        Smoothed posterior density: sum of Gaussian bumps (width h) centered on each particle, scaled by its weight
+        p(s) = sum_i w_i N(s; s_i, h^2), evaluated on a grid over [s_min, s_max] with spacing ds
+        Inputs: bandwidth h (px), grid spacing ds (px)
+        Returns: grid s, density p(s)
+        """
+        s = np.arange(self.s_min, self.s_max + ds, ds)
+        bumps = np.exp(-0.5 * ((s[:, None] - self.particles[None, :]) / h)**2) / (h * np.sqrt(2 * np.pi))
+        return s, bumps @ self.weights
+
+    def map_estimate(self, h, ds=1.0):
+        """
+        MAP estimate: position of the tallest peak of the smoothed density (kde)
+        Inputs: bandwidth h (px), grid spacing ds (px)
+        """
+        s, p = self.kde(h, ds)
+        return s[np.argmax(p)]
+
 
 
 
@@ -164,14 +184,15 @@ def capture(strip, s, L, heading=1, sigma_meas=0):
 
 
 
-def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, particle_windows=False, z=None, p_near=None):
+def plot_curr_particles(strip, particles, s_true=None, L=None, s_hat=None, heading=1, particle_windows=False, z=None, p_near=None):
     """
     Plot and visualize current distribution of particles
+    Estimate s_hat drawn as a dashed blue line on strip + histogram if given
     Windows drawn only if L is given: true window (green box) needs s_true, particle windows (red boxes) need particle_windows=True
     Captured window shown in an extra row if z is given
     Window of particle p_near (orange box + extra row) shown if p_near and L are given, same gray scale as z
     Input: rectified strip, particle positions, true position (optional), window length L (px),
-    heading (+1 / -1), particle_windows flag, captured window z (strip height, L) (optional),
+    state estimate s_hat (optional), heading (+1 / -1), particle_windows flag, captured window z (strip height, L) (optional),
     particle position to inspect p_near (optional)
     """
     H = strip.shape[0]
@@ -199,6 +220,9 @@ def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, partic
     if s_true is not None:
         for ax in axs[:2]:
             ax.axvline(s_true, c='g', lw=2)
+    if s_hat is not None:
+        for ax in axs[:2]:
+            ax.axvline(s_hat, c='b', ls='--', lw=2)
     vmin, vmax = (z.min(), z.max()) if z is not None else (None, None)
     if z is not None:
         axs[2].imshow(z, cmap='gray', aspect='equal', vmin=vmin, vmax=vmax)
@@ -212,6 +236,33 @@ def plot_curr_particles(strip, particles, s_true=None, L=None, heading=1, partic
         axs[-1].imshow(w_p, cmap='gray', aspect='equal', vmin=vmin, vmax=vmax)
         axs[-1].set_title(title)
         axs[-1].set_xlabel("px within window")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_density(strip, pf, h, s_true=None, s_hat=None):
+    """
+    Plot particle weights (red stems) and smoothed density p(s) (black curve, right axis) under the strip
+    Truth drawn as solid green line, estimate as dashed blue line if given
+    Input: rectified strip, ParticleFilter1D object, bandwidth h (px), true position (optional), estimate s_hat (optional)
+    """
+    s, p = pf.kde(h)
+    fig, axs = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
+    axs[0].imshow(strip, cmap='gray', aspect='auto')
+    axs[0].set_title("Strip")
+    axs[1].vlines(pf.particles, 0, pf.weights, colors='r', lw=0.8)
+    axs[1].set_ylabel("particle weight", color='r')
+    axs[1].set_xlabel("s (px along track)")
+    ax_p = axs[1].twinx()
+    ax_p.plot(s, p, c='k', lw=1.5)
+    ax_p.set_ylim(bottom=0)
+    ax_p.set_ylabel("density p(s)")
+    axs[1].set_title(f"Particle weights and smoothed density (h={h} px)")
+    for ax in axs:
+        if s_true is not None:
+            ax.axvline(s_true, c='g', lw=2)
+        if s_hat is not None:
+            ax.axvline(s_hat, c='b', ls='--', lw=2)
     plt.tight_layout()
     plt.show()
 
